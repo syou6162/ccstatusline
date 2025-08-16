@@ -94,6 +94,27 @@ Each component has a corresponding `*_test.go` file with comprehensive unit test
 - Sets default separator to single space if not specified
 - Returns error if config file doesn't exist (no fallback to defaults)
 
+## GitHub Actions & Release
+
+### Workflows
+- **Test workflow** (`.github/workflows/test.yml`): Runs on push/PR, tests against Go 1.21 and 1.22
+- **Release workflow** (`.github/workflows/release.yml`): Triggers on version tags (v*), creates GitHub releases with binaries
+
+### Creating a Release
+```bash
+# Tag a new version
+git tag v1.0.0
+git push origin v1.0.0
+
+# GitHub Actions will automatically:
+# 1. Run tests
+# 2. Build binaries for Linux/macOS/Windows (amd64/arm64)
+# 3. Create GitHub release with artifacts
+```
+
+### GoReleaser Configuration
+`.goreleaser.yaml` configures multi-platform builds. Modify to add new OS/arch combinations or change archive formats.
+
 ## Common Modifications
 
 ### Adding New Color
