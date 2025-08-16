@@ -97,7 +97,7 @@ Each component has a corresponding `*_test.go` file with comprehensive unit test
 ## GitHub Actions
 
 ### Test Workflow
-`.github/workflows/test.yml` runs on push and pull requests:
+`.github/workflows/test.yml` runs on every push:
 - Tests against Go 1.21 and 1.22
 - Runs tests with race detection
 - Reports test coverage
