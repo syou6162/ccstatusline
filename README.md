@@ -56,26 +56,26 @@ actions:
       type: output
       text: "🤖 {.model.display_name}"
       color: cyan
-  
+
   # Show Git branch
   - name: git_branch
     command:
       type: command
       command: "git branch --show-current 2>/dev/null || echo 'no-git'"
-  
+
   - name: git_output
     command:
       type: output
       text: " ({command_output})"
       color: green
-  
+
   # Display current directory
   - name: directory
     command:
       type: output
       text: " 📁 {.current_working_directory | split(\"/\") | .[-1]}"
       color: blue
-  
+
   # Show session ID (shortened)
   - name: session
     command:
@@ -159,18 +159,18 @@ actions:
     command:
       type: command
       command: "hostname -s"
-  
+
   - name: host_output
     command:
       type: output
       text: "💻 {command_output}"
       color: magenta
-  
+
   - name: time
     command:
       type: command
       command: "date +%H:%M"
-  
+
   - name: time_output
     command:
       type: output
@@ -188,18 +188,18 @@ actions:
     command:
       type: command
       command: "node -v 2>/dev/null | cut -c2- || echo 'N/A'"
-  
+
   - name: node_output
     command:
       type: output
       text: "Node: {command_output}"
       color: green
-  
+
   - name: python_version
     command:
       type: command
       command: "python3 --version 2>/dev/null | cut -d' ' -f2 || echo 'N/A'"
-  
+
   - name: python_output
     command:
       type: output
