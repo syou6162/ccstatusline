@@ -13,14 +13,14 @@ func TestLoadConfig(t *testing.T) {
 
 	configContent := `actions:
   - name: test1
-    command:
-      type: output
-      text: "Test 1"
-      color: cyan
+    text: "Test 1"
+    color: cyan
   - name: test2
-    command:
-      type: command
-      command: "echo hello"
+    command: "echo hello"
+    color: green
+  - name: test3
+    command: "whoami"
+    text: "User: {output}"
 separator: " | "`
 
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
@@ -34,32 +34,35 @@ separator: " | "`
 	}
 
 	// Verify the loaded config
-	if len(config.Actions) != 2 {
-		t.Errorf("Expected 2 actions, got %d", len(config.Actions))
+	if len(config.Actions) != 3 {
+		t.Errorf("Expected 3 actions, got %d", len(config.Actions))
 	}
 
+	// Check first action (text only)
 	if config.Actions[0].Name != "test1" {
 		t.Errorf("First action name = %q, want %q", config.Actions[0].Name, "test1")
 	}
-
-	if config.Actions[0].Command.Type != "output" {
-		t.Errorf("First action type = %q, want %q", config.Actions[0].Command.Type, "output")
+	if config.Actions[0].Text != "Test 1" {
+		t.Errorf("First action text = %q, want %q", config.Actions[0].Text, "Test 1")
+	}
+	if config.Actions[0].Color != "cyan" {
+		t.Errorf("First action color = %q, want %q", config.Actions[0].Color, "cyan")
 	}
 
-	if config.Actions[0].Command.Text != "Test 1" {
-		t.Errorf("First action text = %q, want %q", config.Actions[0].Command.Text, "Test 1")
+	// Check second action (command only)
+	if config.Actions[1].Command != "echo hello" {
+		t.Errorf("Second action command = %q, want %q", config.Actions[1].Command, "echo hello")
+	}
+	if config.Actions[1].Color != "green" {
+		t.Errorf("Second action color = %q, want %q", config.Actions[1].Color, "green")
 	}
 
-	if config.Actions[0].Command.Color != "cyan" {
-		t.Errorf("First action color = %q, want %q", config.Actions[0].Command.Color, "cyan")
+	// Check third action (command with text template)
+	if config.Actions[2].Command != "whoami" {
+		t.Errorf("Third action command = %q, want %q", config.Actions[2].Command, "whoami")
 	}
-
-	if config.Actions[1].Command.Type != "command" {
-		t.Errorf("Second action type = %q, want %q", config.Actions[1].Command.Type, "command")
-	}
-
-	if config.Actions[1].Command.Command != "echo hello" {
-		t.Errorf("Second action command = %q, want %q", config.Actions[1].Command.Command, "echo hello")
+	if config.Actions[2].Text != "User: {output}" {
+		t.Errorf("Third action text = %q, want %q", config.Actions[2].Text, "User: {output}")
 	}
 
 	if config.Separator != " | " {
@@ -74,9 +77,7 @@ func TestLoadConfigDefaultSeparator(t *testing.T) {
 
 	configContent := `actions:
   - name: test
-    command:
-      type: output
-      text: "Test"`
+    text: "Test"`
 
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
 		t.Fatalf("Failed to write test config: %v", err)

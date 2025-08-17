@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestProcessorProcessOutput(t *testing.T) {
+func TestProcessorSimple(t *testing.T) {
 	tests := []struct {
 		name      string
 		config    *Config
@@ -14,15 +14,12 @@ func TestProcessorProcessOutput(t *testing.T) {
 		contains  []string
 	}{
 		{
-			name: "simple output",
+			name: "simple text output",
 			config: &Config{
 				Actions: []Action{
 					{
 						Name: "test",
-						Command: Command{
-							Type: "output",
-							Text: "Hello World",
-						},
+						Text: "Hello World",
 					},
 				},
 				Separator: " | ",
@@ -31,35 +28,32 @@ func TestProcessorProcessOutput(t *testing.T) {
 			expected:  "Hello World",
 		},
 		{
-			name: "output with template",
+			name: "text with template",
 			config: &Config{
 				Actions: []Action{
 					{
 						Name: "model",
-						Command: Command{
-							Type: "output",
-							Text: "Model: {.model}",
-						},
+						Text: "Model: {.model.display_name}",
 					},
 				},
 				Separator: " | ",
 			},
 			inputData: map[string]interface{}{
-				"model": "Claude 3.5",
+				"model": map[string]interface{}{
+					"display_name": "Claude 3.5",
+					"id":           "claude-3-5",
+				},
 			},
 			expected: "Model: Claude 3.5",
 		},
 		{
-			name: "output with color",
+			name: "text with color",
 			config: &Config{
 				Actions: []Action{
 					{
-						Name: "colored",
-						Command: Command{
-							Type:  "output",
-							Text:  "Status",
-							Color: "green",
-						},
+						Name:  "colored",
+						Text:  "Status",
+						Color: "green",
 					},
 				},
 				Separator: " | ",
@@ -68,22 +62,16 @@ func TestProcessorProcessOutput(t *testing.T) {
 			expected:  "\033[32mStatus\033[0m",
 		},
 		{
-			name: "multiple outputs with separator",
+			name: "multiple actions with separator",
 			config: &Config{
 				Actions: []Action{
 					{
 						Name: "first",
-						Command: Command{
-							Type: "output",
-							Text: "First",
-						},
+						Text: "First",
 					},
 					{
 						Name: "second",
-						Command: Command{
-							Type: "output",
-							Text: "Second",
-						},
+						Text: "Second",
 					},
 				},
 				Separator: " | ",
@@ -92,28 +80,68 @@ func TestProcessorProcessOutput(t *testing.T) {
 			expected:  "First | Second",
 		},
 		{
-			name: "command followed by output",
+			name: "command execution",
 			config: &Config{
 				Actions: []Action{
 					{
-						Name: "echo_cmd",
-						Command: Command{
-							Type:    "command",
-							Command: "echo 'test-output'",
-						},
-					},
-					{
-						Name: "show_output",
-						Command: Command{
-							Type: "output",
-							Text: "Result: {command_output}",
-						},
+						Name:    "echo_test",
+						Command: "echo 'test-output'",
 					},
 				},
 				Separator: " | ",
 			},
 			inputData: map[string]interface{}{},
-			expected:  "Result: test-output",
+			expected:  "test-output",
+		},
+		{
+			name: "command with text template",
+			config: &Config{
+				Actions: []Action{
+					{
+						Name:    "echo_with_prefix",
+						Command: "echo 'hello'",
+						Text:    "Result: {output}",
+					},
+				},
+				Separator: " | ",
+			},
+			inputData: map[string]interface{}{},
+			expected:  "Result: hello",
+		},
+		{
+			name: "real world example",
+			config: &Config{
+				Actions: []Action{
+					{
+						Name:  "model",
+						Text:  "🤖 {.model.display_name}",
+						Color: "cyan",
+					},
+					{
+						Name:    "git",
+						Command: "echo 'main'", // Mock git command
+						Text:    "({output})",
+						Color:   "green",
+					},
+					{
+						Name:  "dir",
+						Text:  "📁 {.cwd | split(\"/\") | .[-1]}",
+						Color: "blue",
+					},
+				},
+				Separator: " | ",
+			},
+			inputData: map[string]interface{}{
+				"model": map[string]interface{}{
+					"display_name": "Opus",
+				},
+				"cwd": "/Users/test/projects/myapp",
+			},
+			contains: []string{
+				"Opus",
+				"main",
+				"myapp",
+			},
 		},
 	}
 
@@ -138,25 +166,43 @@ func TestProcessorProcessOutput(t *testing.T) {
 	}
 }
 
-func TestProcessorWithComplexTemplate(t *testing.T) {
+func TestProcessorWithCorrectFields(t *testing.T) {
+	// Test with actual Claude Code field names
 	config := &Config{
 		Actions: []Action{
 			{
-				Name: "complex",
-				Command: Command{
-					Type: "output",
-					Text: "{.user.name} - {.session_id | .[0:8]}",
-				},
+				Name: "model",
+				Text: "{.model.display_name}",
+			},
+			{
+				Name: "session",
+				Text: "{.session_id | .[0:8]}",
+			},
+			{
+				Name: "cwd",
+				Text: "{.cwd | split(\"/\") | .[-1]}",
 			},
 		},
-		Separator: " | ",
+		Separator: " - ",
 	}
 
 	inputData := map[string]interface{}{
-		"user": map[string]interface{}{
-			"name": "Alice",
+		"hook_event_name": "Status",
+		"session_id":      "abc123def456789",
+		"transcript_path": "/tmp/transcript.json",
+		"cwd":             "/Users/test/work/project",
+		"model": map[string]interface{}{
+			"id":           "claude-opus-4-1",
+			"display_name": "Opus",
 		},
-		"session_id": "abcdefghijklmnop",
+		"workspace": map[string]interface{}{
+			"current_dir": "/Users/test/work/project",
+			"project_dir": "/Users/test/work",
+		},
+		"version": "0.1.0",
+		"output_style": map[string]interface{}{
+			"name": "default",
+		},
 	}
 
 	processor := NewProcessor(inputData)
@@ -165,7 +211,7 @@ func TestProcessorWithComplexTemplate(t *testing.T) {
 		t.Fatalf("Process() error = %v", err)
 	}
 
-	expected := "Alice - abcdefgh"
+	expected := "Opus - abc123de - project"
 	if result != expected {
 		t.Errorf("Process() = %q, want %q", result, expected)
 	}

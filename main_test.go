@@ -9,39 +9,44 @@ import (
 )
 
 func TestMainIntegrationSimple(t *testing.T) {
-	// Create test config
+	// Create test config with new structure
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "test-config.yaml")
 
 	configContent := `actions:
   - name: model
-    command:
-      type: output
-      text: "🤖 {.model.display_name}"
-      color: cyan
+    text: "🤖 {.model.display_name}"
+    color: cyan
   - name: directory
-    command:
-      type: output
-      text: " 📁 {.current_working_directory | split(\"/\") | .[-1]}"
-      color: blue
+    text: "📁 {.cwd | split(\"/\") | .[-1]}"
+    color: blue
   - name: session
-    command:
-      type: output
-      text: " [{.session_id | .[0:8]}]"
-      color: gray
+    text: "[{.session_id | .[0:8]}]"
+    color: gray
 separator: " | "`
 
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
 		t.Fatalf("Failed to write test config: %v", err)
 	}
 
-	// Prepare test input
+	// Prepare test input with correct field names
 	inputData := map[string]interface{}{
+		"hook_event_name": "Status",
 		"model": map[string]interface{}{
+			"id":           "claude-3-5",
 			"display_name": "Claude 3.5 Sonnet",
 		},
-		"current_working_directory": "/home/user/projects/test",
-		"session_id":                "abc123def456ghi789",
+		"cwd":             "/home/user/projects/test",
+		"session_id":      "abc123def456ghi789",
+		"transcript_path": "/tmp/transcript.json",
+		"workspace": map[string]interface{}{
+			"current_dir": "/home/user/projects/test",
+			"project_dir": "/home/user/projects",
+		},
+		"version": "0.1.0",
+		"output_style": map[string]interface{}{
+			"name": "default",
+		},
 	}
 
 	// Run the processor
@@ -75,27 +80,28 @@ separator: " | "`
 	}
 }
 
-func TestMainWithCommandActionSimple(t *testing.T) {
+func TestMainWithCommandAction(t *testing.T) {
 	// Create test config with command action
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "test-config.yaml")
 
 	configContent := `actions:
   - name: echo_test
-    command:
-      type: command
-      command: "echo 'Hello World'"
-  - name: show_output
-    command:
-      type: output
-      text: "Output: {command_output}"
+    command: "echo 'Hello World'"
+  - name: echo_with_template
+    command: "echo 'test'"
+    text: "Output: {output}"
 separator: " | "`
 
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
 		t.Fatalf("Failed to write test config: %v", err)
 	}
 
-	inputData := map[string]interface{}{}
+	inputData := map[string]interface{}{
+		"hook_event_name": "Status",
+		"session_id":      "test123",
+		"cwd":             "/test",
+	}
 
 	config, err := LoadConfig(configPath)
 	if err != nil {
@@ -108,7 +114,7 @@ separator: " | "`
 		t.Fatalf("Process() error = %v", err)
 	}
 
-	expected := "Output: Hello World"
+	expected := "Hello World | Output: test"
 	if output != expected {
 		t.Errorf("Output = %q, want %q", output, expected)
 	}
@@ -163,6 +169,17 @@ func TestProcessTemplateEdgeCasesSimple(t *testing.T) {
 			template: "{.field | invalid syntax}",
 			data:     map[string]interface{}{"field": "value"},
 			expected: "[ERROR:",
+		},
+		{
+			name:     "correct field access",
+			template: "{.model.display_name} - {.cwd}",
+			data: map[string]interface{}{
+				"model": map[string]interface{}{
+					"display_name": "Opus",
+				},
+				"cwd": "/home/test",
+			},
+			expected: "Opus - /home/test",
 		},
 	}
 
