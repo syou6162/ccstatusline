@@ -1,0 +1,76 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+)
+
+// Processor handles the processing of actions
+type Processor struct {
+	inputData map[string]interface{}
+}
+
+// NewProcessor creates a new processor
+func NewProcessor(inputData map[string]interface{}) *Processor {
+	return &Processor{
+		inputData: inputData,
+	}
+}
+
+// Process processes the configuration and returns the final output
+func (p *Processor) Process(config *Config) (string, error) {
+	var outputs []string
+
+	for _, action := range config.Actions {
+		output, err := p.processAction(action)
+		if err != nil {
+			// Continue on error, just log it
+			fmt.Fprintf(os.Stderr, "Error processing action %s: %v\n", action.Name, err)
+			continue
+		}
+		if output != "" {
+			outputs = append(outputs, output)
+		}
+	}
+
+	// Join outputs with separator
+	return strings.Join(outputs, config.Separator), nil
+}
+
+// processAction processes a single action
+func (p *Processor) processAction(action Action) (string, error) {
+	var output string
+
+	if action.Command != "" {
+		// First, expand any templates in the command string
+		expandedCommand := expandTemplates(action.Command, p.inputData)
+
+		// Then execute as shell command
+		cmd := exec.Command("sh", "-c", expandedCommand)
+
+		// Provide JSON input via stdin
+		inputJSON, _ := json.Marshal(p.inputData)
+		cmd.Stdin = bytes.NewReader(inputJSON)
+
+		var out bytes.Buffer
+		cmd.Stdout = &out
+
+		if err := cmd.Run(); err != nil {
+			// Command failed, use empty output
+			output = ""
+		} else {
+			output = strings.TrimSpace(out.String())
+		}
+	}
+
+	// Apply color if specified
+	if action.Color != "" {
+		output = applyColor(output, action.Color)
+	}
+
+	return output, nil
+}
