@@ -63,20 +63,22 @@ echo '{"model":{"display_name":"Claude 3.5"},"cwd":"/test","session_id":"abc123"
 **Configuration Format**:
 ```yaml
 actions:
-  - name: optional_name    # For debugging
+  - name: required_name     # Required: unique identifier for action
     command: string         # Shell command with optional {.field} templates
     color: color_name       # Optional ANSI color
+    cache_ttl: seconds      # Optional: cache results for N seconds (0 or unset = no cache)
 separator: " | "            # Default: " | "
 ```
 
 ### Component Responsibilities
 
 - **main.go**: Entry point, reads stdin, loads config, orchestrates processing
-- **processor.go**: Executes actions (template expansion → command execution → color)
+- **processor.go**: Executes actions (template expansion → command execution → color → caching)
 - **template.go**: Handles `{.field}` expansion using gojq, provides `expandTemplates()` and legacy `processTemplate()`
-- **config.go**: YAML parsing and path resolution
+- **config.go**: YAML parsing, path resolution, validates action names are unique and required
 - **colors.go**: ANSI color code mapping
 - **types.go**: Shared structs (Config, Action)
+- **cache.go**: File-based caching with TTL support, XDG Base Directory compliant
 
 ## Important Implementation Details
 
@@ -90,6 +92,16 @@ separator: " | "            # Default: " | "
 - Commands always receive JSON input via stdin
 - Failed commands produce empty output (errors logged to stderr)
 - Template expansion happens BEFORE command execution via `expandTemplates()`
+- Cache checked before execution if `cache_ttl > 0`
+- Results cached after successful execution if `cache_ttl > 0`
+- Expired cache entries cleaned on startup
+
+### Caching System (cache.go)
+- Cache directory: `$XDG_CACHE_HOME/ccstatusline/` or `~/.cache/ccstatusline/`
+- Cache files: `{action_name}.json` containing result and expiration timestamp
+- Only caches when `cache_ttl` is explicitly set and greater than 0
+- Automatic cleanup of expired entries on startup
+- Designed to handle Claude Code's 3-second statusline refresh cycle
 
 ### Claude Code JSON Fields
 Common fields available for templates:
@@ -125,5 +137,15 @@ echo '{"session_id":"abc123","cwd":"/home/user"}' | go run . -config debug.yaml
 ### Processing Complex JSON Pipelines
 For complex operations like extracting from transcript files:
 ```yaml
-- command: "cat | jq -r '.transcript_path' | xargs -I% cat % | jq -r '.sessionId' | tail -n 1"
+- name: transcript_session
+  command: "cat | jq -r '.transcript_path' | xargs -I% cat % | jq -r '.sessionId' | tail -n 1"
+```
+
+### Working with Cache
+For expensive operations (API calls, heavy processing):
+```yaml
+- name: github_issues
+  command: "gh api /user/issues | jq '.total_count'"
+  cache_ttl: 300  # Cache for 5 minutes
+  color: green
 ```
