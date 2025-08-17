@@ -3,30 +3,29 @@
 
 actions:
   # Model display name
-  - text: "🤖 {.model.display_name}"
+  - command: "🤖 {.model.display_name}"
     color: cyan
 
   # Git branch
-  - command: "git branch --show-current 2>/dev/null || echo 'no-git'"
-    text: "({output})"
+  - command: "($(git branch --show-current 2>/dev/null || echo 'no-git'))"
     color: green
 
   # Current directory from cwd field
-  - text: "📁 {.cwd | split(\"/\") | .[-1]}"
+  - command: "📁 {.cwd | split(\"/\") | .[-1]}"
     color: blue
 
   # Session ID (first 8 chars)
-  - text: "[{.session_id | .[0:8]}]"
+  - command: "[{.session_id | .[0:8]}]"
     color: gray
 
 separator: " | "
 
 # Alternative minimal config:
 # actions:
-#   - command: "whoami"
+#   - command: "$(whoami)"
 #     color: cyan
-#   - command: "git branch --show-current"
+#   - command: "$(git branch --show-current)"
 #     color: green
-#   - command: "basename \"$(pwd)\""
+#   - command: "$(basename \"$(pwd)\")"
 #     color: blue
 # separator: " | "

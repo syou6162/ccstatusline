@@ -9,8 +9,7 @@ ccstatusline makes it easy to customize Claude Code's statusline using YAML conf
 ## Features
 
 - 🎨 **YAML Configuration**: Clean, readable multi-line configuration
-- 📝 **Template Syntax**: Simple `{.field}` syntax for accessing JSON data with full jq query support
-- 🔧 **Action System**: Execute shell commands and format output
+- 📝 **Template Syntax**: `{.field}` for JSON data access and `$(command)` for shell commands
 - 🌈 **Color Support**: ANSI color codes for enhanced readability
 - 📂 **XDG Compliant**: Follows XDG Base Directory specification
 
@@ -51,37 +50,20 @@ Create `~/.config/ccstatusline/config.yaml`:
 ```yaml
 actions:
   # Display model name
-  - name: model
-    command:
-      type: output
-      text: "🤖 {.model.display_name}"
-      color: cyan
+  - command: "🤖 {.model.display_name}"
+    color: cyan
 
   # Show Git branch
-  - name: git_branch
-    command:
-      type: command
-      command: "git branch --show-current 2>/dev/null || echo 'no-git'"
-
-  - name: git_output
-    command:
-      type: output
-      text: " ({command_output})"
-      color: green
+  - command: "($(git branch --show-current 2>/dev/null || echo 'no-git'))"
+    color: green
 
   # Display current directory
-  - name: directory
-    command:
-      type: output
-      text: " 📁 {.cwd | split(\"/\") | .[-1]}"
-      color: blue
+  - command: "📁 {.cwd | split(\"/\") | .[-1]}"
+    color: blue
 
   # Show session ID (shortened)
-  - name: session
-    command:
-      type: output
-      text: " [{.session_id | .[0:8]}]"
-      color: gray
+  - command: "[{.session_id | .[0:8]}]"
+    color: gray
 
 separator: " | "
 ```
@@ -101,48 +83,23 @@ Your statusline will display:
 ```yaml
 actions:
   - name: string        # Action name (optional, for debugging)
-    command:           # Command configuration
-      type: string     # "command" or "output"
-      # For type: "command"
-      command: string  # Shell command to execute
-      # For type: "output"
-      text: string     # Text to display (supports templates)
-      color: string    # Color name (optional)
+    command: string     # Text with templates and/or shell commands
+    color: string       # Color name (optional)
 
 separator: string      # Separator between segments (default: " ")
 ```
 
-### Action Types
-
-#### `command` Action
-Executes a shell command and stores the result in `{command_output}` for subsequent actions.
-
-```yaml
-- name: git_branch
-  command:
-    type: command
-    command: "git branch --show-current"
-```
-
-#### `output` Action
-Displays text with template expansion and optional color.
-
-```yaml
-- name: show_branch
-  command:
-    type: output
-    text: "Branch: {command_output}"
-    color: green
-```
-
 ### Template Syntax
 
-Access JSON fields from Claude Code using `{.field}` syntax:
-
-- **Simple fields**: `{.session_id}`, `{.model.display_name}`
-- **Nested fields**: `{.model.id}`, `{.workspace.name}`
-- **JQ filters**: `{.session_id | .[0:8]}`, `{.path | split("/") | .[-1]}`
-- **Command output**: `{output}` (from the current action's command)
+- **JSON fields**: Use `{.field}` to access Claude Code data
+  - Simple: `{.session_id}`, `{.model.display_name}`
+  - Nested: `{.model.id}`, `{.workspace.current_dir}`
+  - JQ filters: `{.session_id | .[0:8]}`, `{.cwd | split("/") | .[-1]}`
+- **Shell commands**: Use `$(command)` to execute commands
+  - Simple: `$(whoami)`, `$(date +%H:%M)`
+  - Complex: `$(git branch --show-current 2>/dev/null || echo 'no-git')`
+- **Combined**: Mix both in a single command
+  - `"👤 $(whoami) in {.cwd | split(\"/\") | .[-1]}"`
 
 ### Available Colors
 
@@ -155,27 +112,11 @@ Access JSON fields from Claude Code using `{.field}` syntax:
 
 ```yaml
 actions:
-  - name: hostname
-    command:
-      type: command
-      command: "hostname -s"
+  - command: "💻 $(hostname -s)"
+    color: magenta
 
-  - name: host_output
-    command:
-      type: output
-      text: "💻 {command_output}"
-      color: magenta
-
-  - name: time
-    command:
-      type: command
-      command: "date +%H:%M"
-
-  - name: time_output
-    command:
-      type: output
-      text: " 🕐 {command_output}"
-      color: yellow
+  - command: "🕐 $(date +%H:%M)"
+    color: yellow
 
 separator: " | "
 ```
@@ -184,27 +125,11 @@ separator: " | "
 
 ```yaml
 actions:
-  - name: node_version
-    command:
-      type: command
-      command: "node -v 2>/dev/null | cut -c2- || echo 'N/A'"
+  - command: "Node: $(node -v 2>/dev/null | cut -c2- || echo 'N/A')"
+    color: green
 
-  - name: node_output
-    command:
-      type: output
-      text: "Node: {command_output}"
-      color: green
-
-  - name: python_version
-    command:
-      type: command
-      command: "python3 --version 2>/dev/null | cut -d' ' -f2 || echo 'N/A'"
-
-  - name: python_output
-    command:
-      type: output
-      text: " Python: {command_output}"
-      color: blue
+  - command: "Python: $(python3 --version 2>/dev/null | cut -d' ' -f2 || echo 'N/A')"
+    color: blue
 
 separator: " | "
 ```
@@ -213,11 +138,8 @@ separator: " | "
 
 ```yaml
 actions:
-  - name: simple
-    command:
-      type: output
-      text: "📍 {.cwd | split(\"/\") | .[-1]} ({.model.display_name})"
-      color: cyan
+  - command: "📍 {.cwd | split(\"/\") | .[-1]} ({.model.display_name})"
+    color: cyan
 ```
 
 ## Configuration File Location
@@ -241,8 +163,10 @@ ccstatusline receives JSON data from Claude Code via stdin, including:
 - `session_id`: Current session identifier
 - `cwd`: Current working directory path
 - `model`: Model information (id, display_name)
-- `workspace`: Workspace details
-- `claude_code_version`: Claude Code version
+- `workspace`: Workspace details (current_dir, project_dir)
+- `hook_event_name`: Event name (e.g., "Status")
+- `transcript_path`: Path to transcript JSON file
+- `version`: Claude Code version
 - `output_style`: Output formatting style
 
 ## Testing
