@@ -73,7 +73,7 @@ actions:
   - name: directory
     command:
       type: output
-      text: " 📁 {.current_working_directory | split(\"/\") | .[-1]}"
+      text: " 📁 {.cwd | split(\"/\") | .[-1]}"
       color: blue
 
   # Show session ID (shortened)
@@ -142,7 +142,7 @@ Access JSON fields from Claude Code using `{.field}` syntax:
 - **Simple fields**: `{.session_id}`, `{.model.display_name}`
 - **Nested fields**: `{.model.id}`, `{.workspace.name}`
 - **JQ filters**: `{.session_id | .[0:8]}`, `{.path | split("/") | .[-1]}`
-- **Command output**: `{command_output}` (from previous command action)
+- **Command output**: `{output}` (from the current action's command)
 
 ### Available Colors
 
@@ -216,7 +216,7 @@ actions:
   - name: simple
     command:
       type: output
-      text: "📍 {.current_working_directory | split(\"/\") | .[-1]} ({.model.display_name})"
+      text: "📍 {.cwd | split(\"/\") | .[-1]} ({.model.display_name})"
       color: cyan
 ```
 
@@ -239,7 +239,7 @@ ccstatusline -config /path/to/custom-config.yaml
 ccstatusline receives JSON data from Claude Code via stdin, including:
 
 - `session_id`: Current session identifier
-- `current_working_directory`: Current working directory path
+- `cwd`: Current working directory path
 - `model`: Model information (id, display_name)
 - `workspace`: Workspace details
 - `claude_code_version`: Claude Code version
@@ -253,7 +253,7 @@ Create a test configuration and run:
 # Create test input
 echo '{
   "model": {"display_name": "Claude 3.5 Sonnet"},
-  "current_working_directory": "/home/user/project",
+  "cwd": "/home/user/project",
   "session_id": "test123456789"
 }' | ccstatusline -config test-config.yaml
 ```
