@@ -103,11 +103,18 @@ func jqValueToString(value interface{}) string {
 
 // processTemplate processes template strings with {.field} syntax and $(command) syntax
 func processTemplate(template string, data map[string]interface{}) string {
+	// Convert input data to JSON for passing to commands
+	inputJSON, _ := json.Marshal(data)
+
 	// First, process shell command substitutions $(command)
 	cmdPattern := regexp.MustCompile(`\$\(([^)]+)\)`)
 	template = cmdPattern.ReplaceAllStringFunc(template, func(match string) string {
 		cmdStr := match[2 : len(match)-1] // Remove $( and )
 		cmd := exec.Command("sh", "-c", cmdStr)
+
+		// Provide the JSON input via stdin
+		cmd.Stdin = bytes.NewReader(inputJSON)
+
 		var out bytes.Buffer
 		cmd.Stdout = &out
 		if err := cmd.Run(); err != nil {

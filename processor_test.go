@@ -214,3 +214,36 @@ func TestProcessorWithCorrectFields(t *testing.T) {
 		t.Errorf("Process() = %q, want %q", result, expected)
 	}
 }
+
+func TestProcessorWithComplexCommand(t *testing.T) {
+	// Test complex command pipeline like cchook
+	config := &Config{
+		Actions: []Action{
+			{
+				Name:    "transcript_path",
+				Command: "$(cat | jq -r '.transcript_path')",
+			},
+			{
+				Name:    "session_from_stdin",
+				Command: "$(cat | jq -r '.session_id' | cut -c1-8)",
+			},
+		},
+		Separator: " - ",
+	}
+
+	inputData := map[string]interface{}{
+		"session_id":      "abc123def456789",
+		"transcript_path": "/tmp/transcript.json",
+	}
+
+	processor := NewProcessor(inputData)
+	result, err := processor.Process(config)
+	if err != nil {
+		t.Fatalf("Process() error = %v", err)
+	}
+
+	expected := "/tmp/transcript.json - abc123de"
+	if result != expected {
+		t.Errorf("Process() = %q, want %q", result, expected)
+	}
+}

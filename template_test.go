@@ -36,6 +36,14 @@ func TestProcessTemplate(t *testing.T) {
 			expected: "Branch: main",
 		},
 		{
+			name:     "shell command with stdin",
+			template: "Session: $(cat | jq -r '.session_id' | cut -c1-8)",
+			data: map[string]interface{}{
+				"session_id": "abc123def456ghi789",
+			},
+			expected: "Session: abc123de",
+		},
+		{
 			name:     "jq filter - slice",
 			template: "ID: {.session_id | .[0:8]}",
 			data: map[string]interface{}{
