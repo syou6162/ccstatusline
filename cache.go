@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -109,4 +111,29 @@ func (c *Cache) CleanExpired() error {
 	}
 
 	return nil
+}
+
+// GenerateCacheKey generates a cache key from cwd and action name
+// Format: {projectName}_{parentHashFirst4Chars}_{actionName}
+func (c *Cache) GenerateCacheKey(cwd string, actionName string) string {
+	projectName := filepath.Base(cwd)
+	parentPath := filepath.Dir(cwd)
+	
+	// Generate hash of parent path
+	hash := sha256.Sum256([]byte(parentPath))
+	hashStr := fmt.Sprintf("%x", hash[:2]) // First 2 bytes = 4 hex chars
+	
+	return fmt.Sprintf("%s_%s_%s", projectName, hashStr, actionName)
+}
+
+// GetWithCwd retrieves a cached value using cwd and action name
+func (c *Cache) GetWithCwd(cwd string, actionName string) (string, bool) {
+	cacheKey := c.GenerateCacheKey(cwd, actionName)
+	return c.Get(cacheKey)
+}
+
+// SetWithCwd stores a value in cache using cwd and action name
+func (c *Cache) SetWithCwd(cwd string, actionName string, result string, ttl int) error {
+	cacheKey := c.GenerateCacheKey(cwd, actionName)
+	return c.Set(cacheKey, result, ttl)
 }

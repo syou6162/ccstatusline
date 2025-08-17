@@ -411,3 +411,90 @@ func TestProcessorWithPrefix(t *testing.T) {
 		})
 	}
 }
+
+func TestProcessorWithCacheSeparationByDirectory(t *testing.T) {
+	// 異なるディレクトリからの入力データを作成
+	inputData1 := map[string]interface{}{
+		"session_id": "test123",
+		"cwd":        "/Users/user/work/project1",
+		"model": map[string]interface{}{
+			"display_name": "Claude 3.5",
+		},
+	}
+	
+	inputData2 := map[string]interface{}{
+		"session_id": "test456",
+		"cwd":        "/Users/user/work/project2",
+		"model": map[string]interface{}{
+			"display_name": "Claude 3.5",
+		},
+	}
+	
+	config := &Config{
+		Actions: []Action{
+			{
+				Name:     "test_action",
+				Command:  "echo project1_data",
+				CacheTTL: 60,
+			},
+		},
+		Separator: " | ",
+	}
+	
+	// processor1 でキャッシュを設定
+	processor1 := NewProcessor(inputData1)
+	processor1.cache = NewCache(t.TempDir())
+	
+	output1, err := processor1.Process(config)
+	if err != nil {
+		t.Fatalf("Process() error = %v", err)
+	}
+	if output1 != "project1_data" {
+		t.Errorf("First execution output = %v, want project1_data", output1)
+	}
+	
+	// processor2 は同じキャッシュディレクトリを使うが、異なるcwdなので異なるキャッシュキーになる
+	processor2 := NewProcessor(inputData2)
+	processor2.cache = processor1.cache // 同じキャッシュインスタンスを共有
+	
+	// processor2 のコマンドを異なる出力に変更（キャッシュが分離されていることを確認）
+	config2 := &Config{
+		Actions: []Action{
+			{
+				Name:     "test_action", // 同じアクション名
+				Command:  "echo project2_data",
+				CacheTTL: 60,
+			},
+		},
+		Separator: " | ",
+	}
+	
+	output2, err := processor2.Process(config2)
+	if err != nil {
+		t.Fatalf("Process() error = %v", err)
+	}
+	if output2 != "project2_data" {
+		t.Errorf("Second execution output = %v, want project2_data", output2)
+	}
+	
+	// processor1 のキャッシュがまだ有効であることを確認
+	// コマンドを変更してもキャッシュから読まれるはず
+	config3 := &Config{
+		Actions: []Action{
+			{
+				Name:     "test_action",
+				Command:  "echo should_not_execute",
+				CacheTTL: 60,
+			},
+		},
+		Separator: " | ",
+	}
+	
+	output3, err := processor1.Process(config3)
+	if err != nil {
+		t.Fatalf("Process() error = %v", err)
+	}
+	if output3 != "project1_data" {
+		t.Errorf("Cached output for project1 = %v, want project1_data", output3)
+	}
+}
