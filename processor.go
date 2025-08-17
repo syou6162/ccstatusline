@@ -10,17 +10,13 @@ import (
 
 // Processor handles the processing of actions
 type Processor struct {
-	context *Context
+	inputData map[string]interface{}
 }
 
 // NewProcessor creates a new processor
 func NewProcessor(inputData map[string]interface{}) *Processor {
 	return &Processor{
-		context: &Context{
-			InputJSON:      inputData,
-			CommandOutputs: make(map[string]string),
-			CurrentOutput:  "",
-		},
+		inputData: inputData,
 	}
 }
 
@@ -46,48 +42,39 @@ func (p *Processor) Process(config *Config) (string, error) {
 
 // processAction processes a single action
 func (p *Processor) processAction(action Action) (string, error) {
-	switch action.Command.Type {
-	case "command":
-		return p.processCommand(action)
-	case "output":
-		return p.processOutput(action)
-	default:
-		return "", fmt.Errorf("unknown action type: %s", action.Command.Type)
-	}
-}
+	var output string
 
-// processCommand executes a shell command
-func (p *Processor) processCommand(action Action) (string, error) {
-	cmd := exec.Command("sh", "-c", action.Command.Command)
-	var out bytes.Buffer
-	cmd.Stdout = &out
+	// If command is specified, execute it
+	if action.Command != "" {
+		cmd := exec.Command("sh", "-c", action.Command)
+		var out bytes.Buffer
+		cmd.Stdout = &out
 
-	err := cmd.Run()
-	if err != nil {
-		// Command failed, but we'll continue with empty output
-		p.context.CurrentOutput = ""
-		p.context.InputJSON["command_output"] = ""
-		return "", nil
+		err := cmd.Run()
+		if err != nil {
+			// Command failed, use empty output
+			output = ""
+		} else {
+			output = strings.TrimSpace(out.String())
+		}
 	}
 
-	output := strings.TrimSpace(out.String())
-	p.context.CurrentOutput = output
-	p.context.InputJSON["command_output"] = output
-	p.context.CommandOutputs[action.Name] = output
+	// If text template is specified, process it
+	if action.Text != "" {
+		// Create context with command output
+		context := make(map[string]interface{})
+		for k, v := range p.inputData {
+			context[k] = v
+		}
+		context["output"] = output
 
-	// Command type doesn't produce visible output directly
-	return "", nil
-}
-
-// processOutput processes an output action
-func (p *Processor) processOutput(action Action) (string, error) {
-	// Process template
-	text := processTemplate(action.Command.Text, p.context.InputJSON)
+		output = processTemplate(action.Text, context)
+	}
 
 	// Apply color if specified
-	if action.Command.Color != "" {
-		text = applyColor(text, action.Command.Color)
+	if action.Color != "" {
+		output = applyColor(output, action.Color)
 	}
 
-	return text, nil
+	return output, nil
 }
