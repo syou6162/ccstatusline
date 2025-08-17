@@ -18,8 +18,8 @@ func TestProcessorSimple(t *testing.T) {
 			config: &Config{
 				Actions: []Action{
 					{
-						Name: "test",
-						Text: "Hello World",
+						Name:    "test",
+						Command: "Hello World",
 					},
 				},
 				Separator: " | ",
@@ -32,8 +32,8 @@ func TestProcessorSimple(t *testing.T) {
 			config: &Config{
 				Actions: []Action{
 					{
-						Name: "model",
-						Text: "Model: {.model.display_name}",
+						Name:    "model",
+						Command: "Model: {.model.display_name}",
 					},
 				},
 				Separator: " | ",
@@ -51,9 +51,9 @@ func TestProcessorSimple(t *testing.T) {
 			config: &Config{
 				Actions: []Action{
 					{
-						Name:  "colored",
-						Text:  "Status",
-						Color: "green",
+						Name:    "colored",
+						Command: "Status",
+						Color:   "green",
 					},
 				},
 				Separator: " | ",
@@ -66,12 +66,12 @@ func TestProcessorSimple(t *testing.T) {
 			config: &Config{
 				Actions: []Action{
 					{
-						Name: "first",
-						Text: "First",
+						Name:    "first",
+						Command: "First",
 					},
 					{
-						Name: "second",
-						Text: "Second",
+						Name:    "second",
+						Command: "Second",
 					},
 				},
 				Separator: " | ",
@@ -85,7 +85,7 @@ func TestProcessorSimple(t *testing.T) {
 				Actions: []Action{
 					{
 						Name:    "echo_test",
-						Command: "echo 'test-output'",
+						Command: "$(echo 'test-output')",
 					},
 				},
 				Separator: " | ",
@@ -94,13 +94,12 @@ func TestProcessorSimple(t *testing.T) {
 			expected:  "test-output",
 		},
 		{
-			name: "command with text template",
+			name: "command with prefix",
 			config: &Config{
 				Actions: []Action{
 					{
 						Name:    "echo_with_prefix",
-						Command: "echo 'hello'",
-						Text:    "Result: {output}",
+						Command: "Result: $(echo 'hello')",
 					},
 				},
 				Separator: " | ",
@@ -113,20 +112,19 @@ func TestProcessorSimple(t *testing.T) {
 			config: &Config{
 				Actions: []Action{
 					{
-						Name:  "model",
-						Text:  "🤖 {.model.display_name}",
-						Color: "cyan",
+						Name:    "model",
+						Command: "🤖 {.model.display_name}",
+						Color:   "cyan",
 					},
 					{
 						Name:    "git",
-						Command: "echo 'main'", // Mock git command
-						Text:    "({output})",
+						Command: "($(echo 'main'))", // Mock git command
 						Color:   "green",
 					},
 					{
-						Name:  "dir",
-						Text:  "📁 {.cwd | split(\"/\") | .[-1]}",
-						Color: "blue",
+						Name:    "dir",
+						Command: "📁 {.cwd | split(\"/\") | .[-1]}",
+						Color:   "blue",
 					},
 				},
 				Separator: " | ",
@@ -171,16 +169,16 @@ func TestProcessorWithCorrectFields(t *testing.T) {
 	config := &Config{
 		Actions: []Action{
 			{
-				Name: "model",
-				Text: "{.model.display_name}",
+				Name:    "model",
+				Command: "{.model.display_name}",
 			},
 			{
-				Name: "session",
-				Text: "{.session_id | .[0:8]}",
+				Name:    "session",
+				Command: "{.session_id | .[0:8]}",
 			},
 			{
-				Name: "cwd",
-				Text: "{.cwd | split(\"/\") | .[-1]}",
+				Name:    "cwd",
+				Command: "{.cwd | split(\"/\") | .[-1]}",
 			},
 		},
 		Separator: " - ",

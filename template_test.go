@@ -30,11 +30,9 @@ func TestProcessTemplate(t *testing.T) {
 			expected: "Name: John",
 		},
 		{
-			name:     "command output",
-			template: "Branch: {command_output}",
-			data: map[string]interface{}{
-				"command_output": "main",
-			},
+			name:     "shell command",
+			template: "Branch: $(echo 'main')",
+			data:     map[string]interface{}{},
 			expected: "Branch: main",
 		},
 		{
