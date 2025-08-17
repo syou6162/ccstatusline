@@ -51,19 +51,19 @@ Create `~/.config/ccstatusline/config.yaml`:
 ```yaml
 actions:
   # Display model name
-  - command: "🤖 {.model.display_name}"
+  - command: "echo '{.model.display_name}'"
     color: cyan
 
   # Show Git branch
-  - command: "($(git branch --show-current 2>/dev/null || echo 'no-git'))"
+  - command: "git branch --show-current 2>/dev/null || echo 'no-git'"
     color: green
 
   # Display current directory
-  - command: "📁 {.cwd | split(\"/\") | .[-1]}"
+  - command: "echo '{.cwd | split(\"/\") | .[-1]}'"
     color: blue
 
-  # Show session ID (shortened)
-  - command: "[{.session_id | .[0:8]}]"
+  # Show session ID (first 8 chars)
+  - command: "echo '{.session_id | .[0:8]}'"
     color: gray
 
 separator: " | "
@@ -132,10 +132,10 @@ separator: " | "
 
 ```yaml
 actions:
-  - command: "Node: $(node -v 2>/dev/null | cut -c2- || echo 'N/A')"
+  - command: "node -v 2>/dev/null | cut -c2- || echo 'N/A'"
     color: green
 
-  - command: "Python: $(python3 --version 2>/dev/null | cut -d' ' -f2 || echo 'N/A')"
+  - command: "python3 --version 2>/dev/null | cut -d' ' -f2 || echo 'N/A'"
     color: blue
 
 separator: " | "
