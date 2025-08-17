@@ -53,6 +53,24 @@ func TestApplyColor(t *testing.T) {
 			color:    "invalid",
 			expected: "Unknown",
 		},
+		{
+			name:     "bg_magenta background",
+			text:     "Background",
+			color:    "bg_magenta",
+			expected: "\033[45mBackground\033[0m",
+		},
+		{
+			name:     "bg_yellow background",
+			text:     "Warning",
+			color:    "bg_yellow",
+			expected: "\033[43mWarning\033[0m",
+		},
+		{
+			name:     "bg_bright_cyan background",
+			text:     "Info",
+			color:    "bg_bright_cyan",
+			expected: "\033[106mInfo\033[0m",
+		},
 	}
 
 	for _, tt := range tests {
