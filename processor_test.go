@@ -19,7 +19,7 @@ func TestProcessorSimple(t *testing.T) {
 				Actions: []Action{
 					{
 						Name:    "test",
-						Command: "Hello World",
+						Command: "echo 'Hello World'",
 					},
 				},
 				Separator: " | ",
@@ -33,7 +33,7 @@ func TestProcessorSimple(t *testing.T) {
 				Actions: []Action{
 					{
 						Name:    "model",
-						Command: "Model: {.model.display_name}",
+						Command: "echo 'Model: {.model.display_name}'",
 					},
 				},
 				Separator: " | ",
@@ -52,7 +52,7 @@ func TestProcessorSimple(t *testing.T) {
 				Actions: []Action{
 					{
 						Name:    "colored",
-						Command: "Status",
+						Command: "echo 'Status'",
 						Color:   "green",
 					},
 				},
@@ -67,11 +67,11 @@ func TestProcessorSimple(t *testing.T) {
 				Actions: []Action{
 					{
 						Name:    "first",
-						Command: "First",
+						Command: "echo 'First'",
 					},
 					{
 						Name:    "second",
-						Command: "Second",
+						Command: "echo 'Second'",
 					},
 				},
 				Separator: " | ",
@@ -85,7 +85,7 @@ func TestProcessorSimple(t *testing.T) {
 				Actions: []Action{
 					{
 						Name:    "echo_test",
-						Command: "$(echo 'test-output')",
+						Command: "echo 'test-output'",
 					},
 				},
 				Separator: " | ",
@@ -99,7 +99,7 @@ func TestProcessorSimple(t *testing.T) {
 				Actions: []Action{
 					{
 						Name:    "echo_with_prefix",
-						Command: "Result: $(echo 'hello')",
+						Command: "echo 'Result: hello'",
 					},
 				},
 				Separator: " | ",
@@ -113,17 +113,17 @@ func TestProcessorSimple(t *testing.T) {
 				Actions: []Action{
 					{
 						Name:    "model",
-						Command: "🤖 {.model.display_name}",
+						Command: "echo '{.model.display_name}'",
 						Color:   "cyan",
 					},
 					{
 						Name:    "git",
-						Command: "($(echo 'main'))", // Mock git command
+						Command: "echo '(main)'", // Mock git command
 						Color:   "green",
 					},
 					{
 						Name:    "dir",
-						Command: "📁 {.cwd | split(\"/\") | .[-1]}",
+						Command: "echo '{.cwd | split(\"/\") | .[-1]}'",
 						Color:   "blue",
 					},
 				},
@@ -170,15 +170,15 @@ func TestProcessorWithCorrectFields(t *testing.T) {
 		Actions: []Action{
 			{
 				Name:    "model",
-				Command: "{.model.display_name}",
+				Command: "echo '{.model.display_name}'",
 			},
 			{
 				Name:    "session",
-				Command: "{.session_id | .[0:8]}",
+				Command: "echo '{.session_id | .[0:8]}'",
 			},
 			{
 				Name:    "cwd",
-				Command: "{.cwd | split(\"/\") | .[-1]}",
+				Command: "echo '{.cwd | split(\"/\") | .[-1]}'",
 			},
 		},
 		Separator: " - ",
@@ -221,11 +221,11 @@ func TestProcessorWithComplexCommand(t *testing.T) {
 		Actions: []Action{
 			{
 				Name:    "transcript_path",
-				Command: "$(cat | jq -r '.transcript_path')",
+				Command: "cat | jq -r '.transcript_path'",
 			},
 			{
 				Name:    "session_from_stdin",
-				Command: "$(cat | jq -r '.session_id' | cut -c1-8)",
+				Command: "cat | jq -r '.session_id' | cut -c1-8",
 			},
 		},
 		Separator: " - ",

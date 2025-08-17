@@ -15,13 +15,13 @@ func TestMainIntegrationSimple(t *testing.T) {
 
 	configContent := `actions:
   - name: model
-    command: "🤖 {.model.display_name}"
+    command: "echo '{.model.display_name}'"
     color: cyan
   - name: directory
-    command: "📁 {.cwd | split(\"/\") | .[-1]}"
+    command: "echo '{.cwd | split(\"/\") | .[-1]}'"
     color: blue
   - name: session
-    command: "[{.session_id | .[0:8]}]"
+    command: "echo '[{.session_id | .[0:8]}]'"
     color: gray
 separator: " | "`
 
@@ -87,9 +87,9 @@ func TestMainWithCommandAction(t *testing.T) {
 
 	configContent := `actions:
   - name: echo_test
-    command: "$(echo 'Hello World')"
+    command: "echo 'Hello World'"
   - name: echo_with_template
-    command: "Output: $(echo 'test')"
+    command: "echo 'Output: test'"
 separator: " | "`
 
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {

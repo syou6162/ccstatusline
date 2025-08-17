@@ -13,13 +13,13 @@ func TestLoadConfig(t *testing.T) {
 
 	configContent := `actions:
   - name: test1
-    command: "Test 1"
+    command: "echo 'Test 1'"
     color: cyan
   - name: test2
-    command: "$(echo hello)"
+    command: "echo hello"
     color: green
   - name: test3
-    command: "User: $(whoami)"
+    command: "echo 'User:' $(whoami)"
 separator: " | "`
 
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
@@ -41,24 +41,24 @@ separator: " | "`
 	if config.Actions[0].Name != "test1" {
 		t.Errorf("First action name = %q, want %q", config.Actions[0].Name, "test1")
 	}
-	if config.Actions[0].Command != "Test 1" {
-		t.Errorf("First action command = %q, want %q", config.Actions[0].Command, "Test 1")
+	if config.Actions[0].Command != "echo 'Test 1'" {
+		t.Errorf("First action command = %q, want %q", config.Actions[0].Command, "echo 'Test 1'")
 	}
 	if config.Actions[0].Color != "cyan" {
 		t.Errorf("First action color = %q, want %q", config.Actions[0].Color, "cyan")
 	}
 
 	// Check second action (command only)
-	if config.Actions[1].Command != "$(echo hello)" {
-		t.Errorf("Second action command = %q, want %q", config.Actions[1].Command, "$(echo hello)")
+	if config.Actions[1].Command != "echo hello" {
+		t.Errorf("Second action command = %q, want %q", config.Actions[1].Command, "echo hello")
 	}
 	if config.Actions[1].Color != "green" {
 		t.Errorf("Second action color = %q, want %q", config.Actions[1].Color, "green")
 	}
 
 	// Check third action (command with template)
-	if config.Actions[2].Command != "User: $(whoami)" {
-		t.Errorf("Third action command = %q, want %q", config.Actions[2].Command, "User: $(whoami)")
+	if config.Actions[2].Command != "echo 'User:' $(whoami)" {
+		t.Errorf("Third action command = %q, want %q", config.Actions[2].Command, "echo 'User:' $(whoami)")
 	}
 
 	if config.Separator != " | " {
@@ -73,7 +73,7 @@ func TestLoadConfigDefaultSeparator(t *testing.T) {
 
 	configContent := `actions:
   - name: test
-    command: "Test"`
+    command: "echo 'Test'"`
 
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
 		t.Fatalf("Failed to write test config: %v", err)
