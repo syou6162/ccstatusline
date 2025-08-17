@@ -12,6 +12,7 @@ ccstatusline makes it easy to customize Claude Code's statusline using YAML conf
 - **Template Syntax**: `{.field}` for JSON data access using JQ queries
 - **Shell Commands**: Execute any shell command with JSON data available via stdin
 - **Color Support**: ANSI color codes for enhanced readability
+- **Caching**: TTL-based caching to reduce load from frequent updates
 - **XDG Compliant**: Follows XDG Base Directory specification
 
 ## Installation
@@ -51,19 +52,23 @@ Create `~/.config/ccstatusline/config.yaml`:
 ```yaml
 actions:
   # Display model name
-  - command: "echo '{.model.display_name}'"
+  - name: model
+    command: "echo '{.model.display_name}'"
     color: cyan
 
   # Show Git branch
-  - command: "git branch --show-current 2>/dev/null || echo 'no-git'"
+  - name: git_branch
+    command: "git branch --show-current 2>/dev/null || echo 'no-git'"
     color: green
 
   # Display current directory
-  - command: "echo '{.cwd | split(\"/\") | .[-1]}'"
+  - name: current_dir
+    command: "echo '{.cwd | split(\"/\") | .[-1]}'"
     color: blue
 
   # Show session ID (first 8 chars)
-  - command: "echo '{.session_id | .[0:8]}'"
+  - name: session
+    command: "echo '{.session_id | .[0:8]}'"
     color: gray
 
 separator: " | "
@@ -83,9 +88,10 @@ Claude 3.5 Sonnet | main | myproject | abc12345
 
 ```yaml
 actions:
-  - name: string        # Action name (optional, for debugging)
+  - name: string        # Required: unique identifier for action
     command: string     # Shell command (templates expanded before execution)
     color: string       # Color name (optional)
+    cache_ttl: integer  # Cache TTL in seconds (optional, 0 or unset = no cache)
 
 separator: string      # Separator between segments (default: " | ")
 ```
@@ -119,10 +125,12 @@ separator: string      # Separator between segments (default: " | ")
 
 ```yaml
 actions:
-  - command: "hostname -s"
+  - name: hostname
+    command: "hostname -s"
     color: magenta
 
-  - command: "date +%H:%M"
+  - name: time
+    command: "date +%H:%M"
     color: yellow
 
 separator: " | "
@@ -132,10 +140,12 @@ separator: " | "
 
 ```yaml
 actions:
-  - command: "node -v 2>/dev/null | cut -c2- || echo 'N/A'"
+  - name: node_version
+    command: "node -v 2>/dev/null | cut -c2- || echo 'N/A'"
     color: green
 
-  - command: "python3 --version 2>/dev/null | cut -d' ' -f2 || echo 'N/A'"
+  - name: python_version
+    command: "python3 --version 2>/dev/null | cut -d' ' -f2 || echo 'N/A'"
     color: blue
 
 separator: " | "
@@ -145,7 +155,8 @@ separator: " | "
 
 ```yaml
 actions:
-  - command: "echo '{.cwd | split(\"/\") | .[-1]} ({.model.display_name})'"
+  - name: status
+    command: "echo '{.cwd | split(\"/\") | .[-1]} ({.model.display_name})'"
     color: cyan
 ```
 
@@ -154,12 +165,36 @@ actions:
 ```yaml
 actions:
   # Extract session ID from transcript file
-  - command: "cat | jq -r '.transcript_path' | xargs -I% cat % | jq -r '.sessionId' | tail -n 1"
+  - name: transcript_session
+    command: "cat | jq -r '.transcript_path' | xargs -I% cat % | jq -r '.sessionId' | tail -n 1"
     color: yellow
 
   # Process multiple fields with jq
-  - command: "cat | jq -r '[.model.display_name, .cwd] | join(\" in \")'"
+  - name: model_in_dir
+    command: "cat | jq -r '[.model.display_name, .cwd] | join(\" in \")'"
     color: cyan
+```
+
+### With Caching (for expensive operations)
+
+```yaml
+actions:
+  # GitHub API call - cached for 5 minutes
+  - name: github_issues
+    command: "gh api /user/issues | jq '.total_count'"
+    cache_ttl: 300
+    color: green
+
+  # Heavy processing - cached for 1 minute
+  - name: docker_status
+    command: "docker ps --format '{{.Names}}' | wc -l | xargs -I{} echo '{} containers'"
+    cache_ttl: 60
+    color: blue
+
+  # No cache for frequently changing data
+  - name: current_time
+    command: "date +%H:%M:%S"
+    color: yellow
 ```
 
 ## Configuration File Location
@@ -169,6 +204,13 @@ The configuration file is searched in the following order:
 1. Path specified with `-config` flag
 2. `$XDG_CONFIG_HOME/ccstatusline/config.yaml`
 3. `~/.config/ccstatusline/config.yaml` (default)
+
+## Cache Directory
+
+Cache files are stored in (following XDG Base Directory specification):
+
+- `$XDG_CACHE_HOME/ccstatusline/` if XDG_CACHE_HOME is set
+- `~/.cache/ccstatusline/` (default)
 
 ## Command Line Options
 
@@ -209,6 +251,7 @@ echo '{
 - Check Claude Code settings: Ensure `statusLine` is configured correctly
 - Verify executable: Make sure `ccstatusline` is in your PATH
 - Test configuration: Run ccstatusline manually with test input
+- Check action names: Ensure all actions have unique `name` fields
 
 ### Colors not displaying
 
@@ -220,6 +263,12 @@ echo '{
 - Shell availability: Commands are executed with `sh -c`
 - Error handling: Commands that fail will result in empty output
 - Use `2>/dev/null` to suppress error messages in commands
+
+### Cache issues
+
+- Check permissions: Ensure `~/.cache/ccstatusline/` is writable
+- Clear cache: Remove files from cache directory if needed
+- Disable cache: Set `cache_ttl: 0` or omit it to disable caching for specific actions
 
 ## Development
 
@@ -240,11 +289,12 @@ go test -v ./...
 ```
 ccstatusline/
 ├── main.go          # Entry point
-├── config.go        # Configuration loading
+├── config.go        # Configuration loading and validation
 ├── types.go         # Type definitions
 ├── template.go      # Template processing
-├── processor.go     # Action processing
+├── processor.go     # Action processing with caching
 ├── colors.go        # ANSI color codes
+├── cache.go         # Caching implementation
 └── *_test.go        # Test files
 ```
 
