@@ -83,23 +83,29 @@ Your statusline will display:
 ```yaml
 actions:
   - name: string        # Action name (optional, for debugging)
-    command: string     # Text with templates and/or shell commands
+    command: string     # Shell command (templates expanded before execution)
     color: string       # Color name (optional)
 
 separator: string      # Separator between segments (default: " ")
 ```
 
-### Template Syntax
+### How It Works
 
-- **JSON fields**: Use `{.field}` to access Claude Code data
-  - Simple: `{.session_id}`, `{.model.display_name}`
-  - Nested: `{.model.id}`, `{.workspace.current_dir}`
-  - JQ filters: `{.session_id | .[0:8]}`, `{.cwd | split("/") | .[-1]}`
-- **Shell commands**: Use `$(command)` to execute commands
-  - Simple: `$(whoami)`, `$(date +%H:%M)`
-  - Complex: `$(git branch --show-current 2>/dev/null || echo 'no-git')`
-- **Combined**: Mix both in a single command
-  - `"👤 $(whoami) in {.cwd | split(\"/\") | .[-1]}"`
+1. **Template Expansion**: `{.field}` syntax is expanded first using JQ queries
+   - `{.session_id}` → `abc123def456`
+   - `{.model.display_name}` → `Claude 3.5 Sonnet`
+   - `{.cwd | split("/") | .[-1]}` → `myproject`
+
+2. **Command Execution**: The expanded string is executed as a shell command
+   - Commands receive Claude Code's JSON data via stdin
+   - Simple commands: `whoami`, `date +%H:%M`
+   - Complex pipelines: `cat | jq -r '.transcript_path' | xargs cat | jq -r '.sessionId'`
+
+3. **Examples**:
+   - Static text: `command: "echo 'Hello World'"`
+   - With template: `command: "echo 'Model: {.model.display_name}'"`
+   - Direct command: `command: "git branch --show-current"`
+   - Using stdin: `command: "cat | jq -r '.session_id' | cut -c1-8"`
 
 ### Available Colors
 
@@ -138,7 +144,7 @@ separator: " | "
 
 ```yaml
 actions:
-  - command: "📍 {.cwd | split(\"/\") | .[-1]} ({.model.display_name})"
+  - command: "echo '{.cwd | split(\"/\") | .[-1]} ({.model.display_name})'"
     color: cyan
 ```
 
@@ -147,11 +153,11 @@ actions:
 ```yaml
 actions:
   # Extract session ID from transcript file
-  - command: "$(cat | jq -r '.transcript_path' | xargs -I% cat % | jq -r '.sessionId' | tail -n 1)"
+  - command: "cat | jq -r '.transcript_path' | xargs -I% cat % | jq -r '.sessionId' | tail -n 1"
     color: yellow
 
   # Process multiple fields with jq
-  - command: "$(cat | jq -r '[.model.display_name, .cwd] | join(\" in \")')"
+  - command: "cat | jq -r '[.model.display_name, .cwd] | join(\" in \")'"
     color: cyan
 ```
 

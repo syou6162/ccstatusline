@@ -3,29 +3,34 @@
 
 actions:
   # Model display name
-  - command: "🤖 {.model.display_name}"
+  - command: "echo '{.model.display_name}'"
     color: cyan
 
   # Git branch
-  - command: "($(git branch --show-current 2>/dev/null || echo 'no-git'))"
+  - command: "git branch --show-current 2>/dev/null || echo 'no-git'"
     color: green
 
   # Current directory from cwd field
-  - command: "📁 {.cwd | split(\"/\") | .[-1]}"
+  - command: "echo '{.cwd | split(\"/\") | .[-1]}'"
     color: blue
 
   # Session ID (first 8 chars)
-  - command: "[{.session_id | .[0:8]}]"
+  - command: "echo '{.session_id | .[0:8]}'"
     color: gray
 
 separator: " | "
 
 # Alternative minimal config:
 # actions:
-#   - command: "$(whoami)"
+#   - command: "whoami"
 #     color: cyan
-#   - command: "$(git branch --show-current)"
+#   - command: "git branch --show-current"
 #     color: green
-#   - command: "$(basename \"$(pwd)\")"
+#   - command: "basename \"$(pwd)\""
 #     color: blue
 # separator: " | "
+
+# Complex pipeline example:
+# actions:
+#   - command: "cat | jq -r '.transcript_path' | xargs -I% cat % | jq -r '.sessionId' | tail -n 1"
+#     color: yellow
