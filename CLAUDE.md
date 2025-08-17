@@ -65,6 +65,7 @@ echo '{"model":{"display_name":"Claude 3.5"},"cwd":"/test","session_id":"abc123"
 actions:
   - name: required_name     # Required: unique identifier for action
     command: string         # Shell command with optional {.field} templates
+    prefix: string          # Optional: prefix to prepend to command output
     color: color_name       # Optional ANSI color
     cache_ttl: seconds      # Optional: cache results for N seconds (0 or unset = no cache)
 separator: " | "            # Default: " | "
@@ -92,6 +93,7 @@ separator: " | "            # Default: " | "
 - Commands always receive JSON input via stdin
 - Failed commands produce empty output (errors logged to stderr)
 - Template expansion happens BEFORE command execution via `expandTemplates()`
+- Prefix applied only when command succeeds and produces non-empty output
 - Cache checked before execution if `cache_ttl > 0`
 - Results cached after successful execution if `cache_ttl > 0`
 - Expired cache entries cleaned on startup
