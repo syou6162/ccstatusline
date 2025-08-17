@@ -1,6 +1,6 @@
 # ccstatusline
 
-A CLI tool for simplifying Claude Code's statusline customization with YAML configuration, inspired by [cchook](https://github.com/syou6162/cchook).
+A CLI tool for simplifying Claude Code's statusline customization with YAML configuration.
 
 ## Overview
 
@@ -250,10 +250,6 @@ ccstatusline/
 ## License
 
 MIT
-
-## Acknowledgments
-
-Inspired by [cchook](https://github.com/syou6162/cchook) - a similar tool for Claude Code hooks.
 
 ## Contributing
 
