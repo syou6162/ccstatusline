@@ -24,119 +24,93 @@ func applyColor(text, colorName string) string {
 // parseColorName converts our color naming convention to gookit/color Style
 func parseColorName(name string) color.Style {
 	// Handle aliases
-	name = strings.ReplaceAll(name, "grey", "gray")
+	name = normalizeColorName(name)
 
 	// Check if it's a background color
 	if strings.HasPrefix(name, "bg_") {
 		bgColor := strings.TrimPrefix(name, "bg_")
 
 		// Handle bright background colors
-		if strings.HasPrefix(bgColor, "bright_") {
-			bgColor = strings.TrimPrefix(bgColor, "bright_")
-			switch bgColor {
-			case "black", "gray":
-				return color.New(color.BgGray)
-			case "red":
-				return color.New(color.BgLightRed)
-			case "green":
-				return color.New(color.BgLightGreen)
-			case "yellow":
-				return color.New(color.BgLightYellow)
-			case "blue":
-				return color.New(color.BgLightBlue)
-			case "magenta":
-				return color.New(color.BgLightMagenta)
-			case "cyan":
-				return color.New(color.BgLightCyan)
-			case "white":
-				return color.New(color.BgLightWhite)
+		if strings.HasPrefix(bgColor, "bright_") || strings.HasPrefix(bgColor, "light") {
+			bgColor = normalizeBrightName(bgColor)
+			if c, ok := color.ExBgColors[bgColor]; ok {
+				return color.New(c)
 			}
 		}
 
 		// Normal background colors
-		switch bgColor {
-		case "black":
-			return color.New(color.BgBlack)
-		case "red":
-			return color.New(color.BgRed)
-		case "green":
-			return color.New(color.BgGreen)
-		case "yellow":
-			return color.New(color.BgYellow)
-		case "blue":
-			return color.New(color.BgBlue)
-		case "magenta":
-			return color.New(color.BgMagenta)
-		case "cyan":
-			return color.New(color.BgCyan)
-		case "white":
-			return color.New(color.BgWhite)
-		case "gray":
-			return color.New(color.BgGray)
+		if c, ok := color.BgColors[bgColor]; ok {
+			return color.New(c)
+		}
+
+		// Special case for gray/grey (treated as darkGray in background)
+		if bgColor == "gray" || bgColor == "grey" {
+			if c, ok := color.ExBgColors["darkGray"]; ok {
+				return color.New(c)
+			}
 		}
 	}
 
-	// Handle bright foreground colors
-	if strings.HasPrefix(name, "bright_") {
-		fgColor := strings.TrimPrefix(name, "bright_")
-		switch fgColor {
-		case "black", "gray":
-			return color.New(color.FgGray)
-		case "red":
-			return color.New(color.FgLightRed)
-		case "green":
-			return color.New(color.FgLightGreen)
-		case "yellow":
-			return color.New(color.FgLightYellow)
-		case "blue":
-			return color.New(color.FgLightBlue)
-		case "magenta":
-			return color.New(color.FgLightMagenta)
-		case "cyan":
-			return color.New(color.FgLightCyan)
-		case "white":
-			return color.New(color.FgLightWhite)
+	// Handle bright/light foreground colors
+	if strings.HasPrefix(name, "bright_") || strings.HasPrefix(name, "light") {
+		fgColor := normalizeBrightName(name)
+		if c, ok := color.ExFgColors[fgColor]; ok {
+			return color.New(c)
 		}
 	}
 
-	// Normal foreground colors and styles
-	switch name {
-	case "black":
-		return color.New(color.FgBlack)
-	case "red":
-		return color.New(color.FgRed)
-	case "green":
-		return color.New(color.FgGreen)
-	case "yellow":
-		return color.New(color.FgYellow)
-	case "blue":
-		return color.New(color.FgBlue)
-	case "magenta":
-		return color.New(color.FgMagenta)
-	case "cyan":
-		return color.New(color.FgCyan)
-	case "white":
-		return color.New(color.FgWhite)
-	case "gray":
-		return color.New(color.FgGray)
-	// Styles
-	case "bold":
-		return color.New(color.OpBold)
-	case "dim":
-		return color.New(color.OpFuzzy)
-	case "italic":
-		return color.New(color.OpItalic)
-	case "underline":
-		return color.New(color.OpUnderscore)
-	case "blink":
-		return color.New(color.OpBlink)
-	case "reverse":
-		return color.New(color.OpReverse)
-	case "hidden":
-		return color.New(color.OpConcealed)
-	case "strike":
-		return color.New(color.OpStrikethrough)
+	// Check if it's a style option (bold, italic, etc.)
+	if c, ok := color.AllOptions[name]; ok {
+		return color.New(c)
+	}
+
+	// Normal foreground colors
+	if c, ok := color.FgColors[name]; ok {
+		return color.New(c)
+	}
+
+	// Special case for gray/grey (treated as darkGray)
+	if name == "gray" || name == "grey" {
+		if c, ok := color.ExFgColors["darkGray"]; ok {
+			return color.New(c)
+		}
 	}
 
 	return nil
+}
+
+// normalizeColorName handles common aliases and variations
+func normalizeColorName(name string) string {
+	// Handle grey -> gray for consistency
+	name = strings.ReplaceAll(name, "grey", "gray")
+	// Handle dim -> fuzzy (gookit/color uses "fuzzy" for dim)
+	if name == "dim" {
+		return "fuzzy"
+	}
+	// Handle underline -> underscore (gookit/color uses "underscore")
+	if name == "underline" {
+		return "underscore"
+	}
+	// Handle strike -> strikethrough (not in AllOptions, needs special handling)
+	if name == "strike" || name == "strikethrough" {
+		// Note: gookit/color doesn't have strikethrough in AllOptions
+		// We'll handle this case in parseColorName
+		return name
+	}
+	return name
+}
+
+// normalizeBrightName converts our naming convention to gookit/color's convention
+func normalizeBrightName(name string) string {
+	// Convert bright_* to light* (gookit/color uses "light" prefix)
+	name = strings.ReplaceAll(name, "bright_", "light")
+	name = strings.ReplaceAll(name, "_", "")
+
+	// Capitalize the color name after "light"
+	if strings.HasPrefix(name, "light") && len(name) > 5 {
+		colorPart := name[5:]
+		name = "light" + strings.Title(colorPart)
+	}
+
+	return name
 }
