@@ -115,6 +115,14 @@ func processTemplate(template string, data map[string]interface{}) string {
 			return ""
 		}
 
+		// Special case for output
+		if content == "output" {
+			if output, ok := data["output"].(string); ok {
+				return output
+			}
+			return ""
+		}
+
 		// Process as JQ query
 		result, err := executeJQQuery(content, data)
 		if err != nil {
