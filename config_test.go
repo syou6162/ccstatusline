@@ -84,9 +84,9 @@ func TestLoadConfigDefaultSeparator(t *testing.T) {
 		t.Fatalf("LoadConfig() error = %v", err)
 	}
 
-	// Should default to single space
-	if config.Separator != " " {
-		t.Errorf("Default separator = %q, want %q", config.Separator, " ")
+	// Should default to " | "
+	if config.Separator != " | " {
+		t.Errorf("Default separator = %q, want %q", config.Separator, " | ")
 	}
 }
 

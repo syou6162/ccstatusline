@@ -86,7 +86,7 @@ actions:
     command: string     # Shell command (templates expanded before execution)
     color: string       # Color name (optional)
 
-separator: string      # Separator between segments (default: " ")
+separator: string      # Separator between segments (default: " | ")
 ```
 
 ### How It Works

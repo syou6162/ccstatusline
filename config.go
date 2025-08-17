@@ -24,7 +24,7 @@ func LoadConfig(configPath string) (*Config, error) {
 
 	// Set default separator if not specified
 	if config.Separator == "" {
-		config.Separator = " "
+		config.Separator = " | "
 	}
 
 	return &config, nil
