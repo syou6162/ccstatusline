@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ccstatusline is a CLI tool that simplifies Claude Code's statusline customization using YAML configuration. It's inspired by cchook and follows similar design patterns - replacing complex shell scripts with clean YAML configuration and template syntax.
+ccstatusline is a CLI tool for customizing Claude Code's statusline using YAML configuration. It processes JSON input from Claude Code via stdin, executes configured shell commands, and outputs a formatted statusline.
 
 ## Development Commands
 
@@ -15,11 +15,11 @@ go build -o ccstatusline
 
 ### Test
 ```bash
-# Run all tests with verbose output
+# Run all tests
 go test -v ./...
 
 # Run specific test file
-go test -v ./template_test.go
+go test -v ./template_test.go ./template.go
 
 # Run specific test function
 go test -v -run TestProcessTemplate
@@ -31,89 +31,99 @@ go test -v -cover ./...
 ### Manual Testing
 ```bash
 # Test with sample input
-echo '{"model":{"display_name":"Claude 3.5"},"current_working_directory":"/test","session_id":"abc123"}' | ./ccstatusline -config test-config.yaml
+echo '{"model":{"display_name":"Claude 3.5"},"cwd":"/test","session_id":"abc123"}' | ./ccstatusline -config test-config.yaml
 
-# Test with custom config
-./ccstatusline -config ~/.config/ccstatusline/custom.yaml < test-input.json
+# Test with actual Claude Code JSON structure
+./ccstatusline -config ~/.config/ccstatusline/config.yaml < test-input.json
 ```
 
 ## Architecture
 
-### Data Flow
-1. **Input**: JSON from Claude Code via stdin → `main.go`
-2. **Configuration**: YAML file loaded by `config.go` (respects XDG_CONFIG_HOME)
-3. **Processing**: `processor.go` executes actions sequentially:
-   - `command` actions execute shell commands, store output in context
-   - `output` actions apply templates and colors, produce visible text
-4. **Template Engine**: `template.go` uses gojq for JQ-style queries on JSON data
-5. **Output**: Single line to stdout with ANSI color codes
+### Core Flow
+1. **Input**: Claude Code sends JSON via stdin containing session data (`session_id`, `cwd`, `model`, `transcript_path`, etc.)
+2. **Configuration**: YAML config loaded from (in order): CLI flag, `$XDG_CONFIG_HOME/ccstatusline/config.yaml`, `~/.config/ccstatusline/config.yaml`
+3. **Processing**: Each action in the config is processed sequentially:
+   - Template expansion: `{.field}` patterns are replaced with JSON values using JQ queries
+   - Command execution: The resulting string is executed as a shell command with JSON data available on stdin
+   - Color application: ANSI color codes applied if specified
+4. **Output**: Formatted statusline sent to stdout
 
-### Key Design Patterns
+### Key Design Decisions
 
-**Action Chain Pattern**: Actions execute sequentially, with `command` actions modifying the context (adding `command_output`) that subsequent `output` actions can reference. This allows chaining commands and formatting their output.
+**Simplified Action Structure**: Unlike early iterations, the current design has a single `command` field that:
+- Always executes as a shell command
+- Templates (`{.field}`) are expanded BEFORE execution
+- Commands receive the full JSON input via stdin for complex processing
 
-**Template Processing**: Uses `{.field}` syntax with full JQ query support. The special `{command_output}` placeholder references the last command's output without JQ processing.
+**Template System**:
+- `{.field}` syntax uses gojq for full JQ query support
+- Template expansion happens in `expandTemplates()` before command execution
+- Commands can also process stdin JSON directly (e.g., `cat | jq -r '.session_id'`)
 
-**Configuration Structure**:
+**Configuration Format**:
 ```yaml
 actions:
-  - name: identifier
-    command:
-      type: "command" | "output"
-      command: "shell command"  # for type: command
-      text: "template string"   # for type: output
-      color: "color_name"       # for type: output
-separator: " | "
+  - name: optional_name    # For debugging
+    command: string         # Shell command with optional {.field} templates
+    color: color_name       # Optional ANSI color
+separator: " | "            # Default: " | "
 ```
 
-### Testing Strategy
+### Component Responsibilities
 
-Each component has a corresponding `*_test.go` file with comprehensive unit tests. Integration tests in `main_test.go` verify the complete flow. When modifying:
+- **main.go**: Entry point, reads stdin, loads config, orchestrates processing
+- **processor.go**: Executes actions (template expansion → command execution → color)
+- **template.go**: Handles `{.field}` expansion using gojq, provides `expandTemplates()` and legacy `processTemplate()`
+- **config.go**: YAML parsing and path resolution
+- **colors.go**: ANSI color code mapping
+- **types.go**: Shared structs (Config, Action)
 
-- **Template syntax**: Update `template_test.go`
-- **Action processing**: Update `processor_test.go`
-- **Config loading**: Update `config_test.go`
-- **Color codes**: Update `colors_test.go`
+## Important Implementation Details
 
-## Important Implementation Notes
+### Template Processing (template.go)
+- `expandTemplates()`: Only expands `{.field}` patterns, used by processor
+- `processTemplate()`: Legacy function that also handles `$(command)` syntax, kept for test compatibility
+- Both use gojq with query caching for performance
+- Missing fields return empty strings (not errors)
 
-### Template Engine (template.go)
-- Uses github.com/itchyny/gojq for JQ query execution
-- Caches compiled queries for performance
-- Special handling for `{command_output}` to bypass JQ processing
-- Returns empty string for missing fields (not an error)
+### Command Execution (processor.go)
+- Commands always receive JSON input via stdin
+- Failed commands produce empty output (errors logged to stderr)
+- Template expansion happens BEFORE command execution via `expandTemplates()`
 
-### Processor Context (processor.go)
-- Maintains `Context` struct with InputJSON and CommandOutputs
-- Updates `InputJSON["command_output"]` after each command execution
-- Continues processing on command failures (returns empty output)
-- Logs errors to stderr but doesn't stop the pipeline
+### Claude Code JSON Fields
+Common fields available for templates:
+- `session_id`: Session identifier
+- `cwd`: Current working directory
+- `model.display_name`: Model name (e.g., "Claude 3.5 Sonnet")
+- `transcript_path`: Path to transcript JSON file
+- `workspace.current_dir`, `workspace.project_dir`: Workspace paths
+- `hook_event_name`: Event name (e.g., "Status")
+- `version`: Claude Code version
 
-### Configuration Resolution (config.go)
-- Checks paths in order: CLI flag → XDG_CONFIG_HOME → ~/.config
-- Sets default separator to single space if not specified
-- Returns error if config file doesn't exist (no fallback to defaults)
+## Testing Approach
 
-## GitHub Actions
+- Each component has a corresponding `*_test.go` file
+- Integration tests in `main_test.go` verify the complete pipeline
+- Tests use table-driven patterns for comprehensive coverage
+- Mock commands (e.g., `echo`) used to avoid external dependencies
 
-### Test Workflow
-`.github/workflows/test.yml` runs on every push:
-- Tests against Go 1.21 and 1.22
-- Runs tests with race detection
-- Reports test coverage
+## Common Tasks
 
-## Common Modifications
-
-### Adding New Color
+### Adding a New Color
 Add to `colorMap` in `colors.go`:
 ```go
-"new_color": "\033[XXm",
+"purple": "\033[35m",
 ```
 
-### Adding New Template Function
-Extend JQ query support in `template.go` - gojq handles most standard JQ functions automatically.
+### Debugging Template Issues
+Test template expansion directly:
+```bash
+echo '{"session_id":"abc123","cwd":"/home/user"}' | go run . -config debug.yaml
+```
 
-### Adding New Action Type
-1. Update `Command` struct in `types.go`
-2. Add case in `processAction()` in `processor.go`
-3. Add corresponding test in `processor_test.go`
+### Processing Complex JSON Pipelines
+For complex operations like extracting from transcript files:
+```yaml
+- command: "cat | jq -r '.transcript_path' | xargs -I% cat % | jq -r '.sessionId' | tail -n 1"
+```
