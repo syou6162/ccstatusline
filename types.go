@@ -8,7 +8,8 @@ type Config struct {
 
 // Action represents a single action in the configuration
 type Action struct {
-	Name    string `yaml:"name"`    // Optional name for debugging
-	Command string `yaml:"command"` // Shell command to execute or template text
-	Color   string `yaml:"color"`   // Optional color
+	Name     string `yaml:"name"`      // Required: unique identifier for action
+	Command  string `yaml:"command"`   // Shell command to execute or template text
+	Color    string `yaml:"color"`     // Optional color
+	CacheTTL int    `yaml:"cache_ttl"` // Cache TTL in seconds (0 or unset = no cache)
 }
