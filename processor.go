@@ -53,9 +53,17 @@ func (p *Processor) Process(config *Config) (string, error) {
 func (p *Processor) processAction(action Action) (string, error) {
 	var output string
 
+	// Get cwd from input data
+	cwd := ""
+	if cwdValue, ok := p.inputData["cwd"]; ok {
+		if cwdStr, ok := cwdValue.(string); ok {
+			cwd = cwdStr
+		}
+	}
+
 	// Check cache if TTL is set
 	if action.CacheTTL > 0 {
-		if cachedOutput, ok := p.cache.Get(action.Name); ok {
+		if cachedOutput, ok := p.cache.GetWithCwd(cwd, action.Name); ok {
 			// Apply prefix if specified and output is not empty
 			if action.Prefix != "" && cachedOutput != "" {
 				cachedOutput = action.Prefix + cachedOutput
@@ -96,7 +104,7 @@ func (p *Processor) processAction(action Action) (string, error) {
 
 		// Store in cache if TTL is set and output is not empty
 		if action.CacheTTL > 0 && output != "" {
-			if err := p.cache.Set(action.Name, output, action.CacheTTL); err != nil {
+			if err := p.cache.SetWithCwd(cwd, action.Name, output, action.CacheTTL); err != nil {
 				// Log but don't fail
 				fmt.Fprintf(os.Stderr, "Warning: failed to cache result for %s: %v\n", action.Name, err)
 			}
