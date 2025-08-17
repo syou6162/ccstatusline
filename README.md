@@ -90,6 +90,7 @@ Claude 3.5 Sonnet | main | myproject | abc12345
 actions:
   - name: string        # Required: unique identifier for action
     command: string     # Shell command (templates expanded before execution)
+    prefix: string      # Optional prefix to prepend to command output
     color: string       # Color name (optional)
     cache_ttl: integer  # Cache TTL in seconds (optional, 0 or unset = no cache)
 
@@ -174,6 +175,25 @@ actions:
     command: "cat | jq -r '[.model.display_name, .cwd] | join(\" in \")'"
     color: cyan
 ```
+
+### With Prefix
+
+```yaml
+actions:
+  - name: model
+    command: "echo '{.model.display_name}'"
+    prefix: "Model: "
+    color: cyan
+
+  - name: session
+    command: "echo '{.session_id | .[0:8]}'"
+    prefix: "ID: "
+    color: gray
+```
+
+Output: `Model: Claude 3.5 Sonnet | ID: abc12345`
+
+**Note**: If a command fails or returns empty output, the prefix is not displayed.
 
 ### With Caching (for expensive operations)
 
