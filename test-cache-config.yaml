@@ -1,0 +1,17 @@
+actions:
+  - name: timestamp
+    command: "date +%s"
+    cache_ttl: 10  # 10秒間キャッシュ
+    color: cyan
+
+  - name: model_name
+    command: "cat | jq -r '.model.display_name'"
+    color: green
+    # cache_ttl未設定 = キャッシュなし
+
+  - name: current_dir
+    command: "echo {.cwd} | xargs basename"
+    color: yellow
+    # cache_ttl未設定 = キャッシュなし
+
+separator: " | "
