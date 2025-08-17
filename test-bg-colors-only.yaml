@@ -1,0 +1,43 @@
+actions:
+  # 見やすい背景色10選
+  - name: bg_blue
+    command: "echo ' 1. 青背景 '"
+    color: bg_blue
+
+  - name: bg_cyan
+    command: "echo ' 2. シアン背景 '"
+    color: bg_cyan
+
+  - name: bg_green
+    command: "echo ' 3. 緑背景 '"
+    color: bg_green
+
+  - name: bg_magenta
+    command: "echo ' 4. マゼンタ背景 '"
+    color: bg_magenta
+
+  - name: bg_yellow
+    command: "echo ' 5. 黄色背景 '"
+    color: bg_yellow
+
+  - name: bg_bright_blue
+    command: "echo ' 6. 明るい青背景 '"
+    color: bg_bright_blue
+
+  - name: bg_bright_cyan
+    command: "echo ' 7. 明るいシアン背景 '"
+    color: bg_bright_cyan
+
+  - name: bg_bright_green
+    command: "echo ' 8. 明るい緑背景 '"
+    color: bg_bright_green
+
+  - name: bg_bright_magenta
+    command: "echo ' 9. 明るいマゼンタ背景 '"
+    color: bg_bright_magenta
+
+  - name: bg_red
+    command: "echo ' 10. 赤背景(警告用) '"
+    color: bg_red
+
+separator: " "

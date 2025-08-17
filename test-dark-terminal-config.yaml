@@ -1,0 +1,44 @@
+actions:
+  # 黒背景で見やすい前景色
+  - name: bright_green
+    command: "echo '1. 明るい緑'"
+    color: bright_green
+
+  - name: bright_cyan
+    command: "echo '2. 明るいシアン'"
+    color: bright_cyan
+
+  - name: bright_yellow
+    command: "echo '3. 明るい黄色'"
+    color: bright_yellow
+
+  - name: bright_magenta
+    command: "echo '4. 明るいマゼンタ'"
+    color: bright_magenta
+
+  - name: bright_blue
+    command: "echo '5. 明るい青'"
+    color: bright_blue
+
+  # 黒背景で見やすい背景色（文字は自動的に見やすい色になる）
+  - name: bg_blue
+    command: "echo '6. 青背景'"
+    color: bg_blue
+
+  - name: bg_cyan
+    command: "echo '7. シアン背景'"
+    color: bg_cyan
+
+  - name: bg_magenta
+    command: "echo '8. マゼンタ背景'"
+    color: bg_magenta
+
+  - name: bg_yellow
+    command: "echo '9. 黄色背景'"
+    color: bg_yellow
+
+  - name: bg_bright_blue
+    command: "echo '10. 明るい青背景'"
+    color: bg_bright_blue
+
+separator: " | "

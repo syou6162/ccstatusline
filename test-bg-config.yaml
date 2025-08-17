@@ -1,0 +1,20 @@
+actions:
+  # 背景色のテスト
+  - name: session_bg_blue
+    command: "echo 'Session: {.session_id}'"
+    color: bg_blue
+
+  - name: model_bg_green
+    command: "echo '{.model.display_name}'"
+    color: bg_green
+
+  - name: cwd_bg_red_white
+    command: "echo '{.cwd}'"
+    color: bg_red  # 赤背景（白文字が見やすい）
+
+  - name: git_branch_bg_yellow
+    command: "cd {.cwd} && git branch --show-current 2>/dev/null || echo 'no-git'"
+    prefix: "📌"
+    color: bg_yellow  # 黄色背景（黒文字が見やすい）
+
+separator: " | "

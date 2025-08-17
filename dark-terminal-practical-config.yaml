@@ -1,0 +1,44 @@
+actions:
+  # セッション情報（明るいシアン - 視認性高い）
+  - name: session
+    command: "echo '{.session_id}' | cut -c1-8"
+    prefix: "📍"
+    color: bright_cyan
+
+  # モデル名（明るい緑 - 重要度高い情報）
+  - name: model
+    command: "echo '{.model.display_name}'"
+    prefix: "🤖"
+    color: bright_green
+
+  # Git ブランチ（明るい黄色 - 警告的な意味合い）
+  - name: git_branch
+    command: "cd {.cwd} && git branch --show-current 2>/dev/null || echo ''"
+    prefix: "🌿"
+    color: bright_yellow
+
+  # ディレクトリ（明るい青 - 標準的な情報）
+  - name: directory
+    command: "echo '{.cwd}' | sed 's|.*/||'"
+    prefix: "📁"
+    color: bright_blue
+
+  # 時刻（明るいマゼンタ - アクセント）
+  - name: time
+    command: "date '+%H:%M'"
+    prefix: "🕐"
+    color: bright_magenta
+
+  # エラーや警告用（赤背景 - 目立つ）
+  - name: errors
+    command: "cd {.cwd} && git status --porcelain 2>/dev/null | grep -c '^' | awk '{if($1>0) print \"📝 \"$1\" changes\"}'"
+    color: bg_red
+    cache_ttl: 5
+
+  # 成功状態（緑背景 - ポジティブ）
+  - name: status_ok
+    command: "cd {.cwd} && test -d .git && echo '✓ Git OK' || echo ''"
+    color: bg_green
+    cache_ttl: 10
+
+separator: " | "
