@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -44,31 +42,9 @@ func (p *Processor) Process(config *Config) (string, error) {
 func (p *Processor) processAction(action Action) (string, error) {
 	var output string
 
-	// If command is specified, execute it
 	if action.Command != "" {
-		cmd := exec.Command("sh", "-c", action.Command)
-		var out bytes.Buffer
-		cmd.Stdout = &out
-
-		err := cmd.Run()
-		if err != nil {
-			// Command failed, use empty output
-			output = ""
-		} else {
-			output = strings.TrimSpace(out.String())
-		}
-	}
-
-	// If text template is specified, process it
-	if action.Text != "" {
-		// Create context with command output
-		context := make(map[string]interface{})
-		for k, v := range p.inputData {
-			context[k] = v
-		}
-		context["output"] = output
-
-		output = processTemplate(action.Text, context)
+		// Process as template (supports both text and $(command) syntax)
+		output = processTemplate(action.Command, p.inputData)
 	}
 
 	// Apply color if specified

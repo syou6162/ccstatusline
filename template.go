@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"regexp"
 	"strings"
 	"sync"
@@ -99,29 +101,25 @@ func jqValueToString(value interface{}) string {
 	}
 }
 
-// processTemplate processes template strings with {.field} syntax
+// processTemplate processes template strings with {.field} syntax and $(command) syntax
 func processTemplate(template string, data map[string]interface{}) string {
-	// Pattern: { followed by any content and ending with }
-	pattern := regexp.MustCompile(`\{([^}]+)\}`)
+	// First, process shell command substitutions $(command)
+	cmdPattern := regexp.MustCompile(`\$\(([^)]+)\)`)
+	template = cmdPattern.ReplaceAllStringFunc(template, func(match string) string {
+		cmdStr := match[2 : len(match)-1] // Remove $( and )
+		cmd := exec.Command("sh", "-c", cmdStr)
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		if err := cmd.Run(); err != nil {
+			return "" // Return empty string on error
+		}
+		return strings.TrimSpace(out.String())
+	})
 
+	// Then process template placeholders {.field}
+	pattern := regexp.MustCompile(`\{([^}]+)\}`)
 	return pattern.ReplaceAllStringFunc(template, func(match string) string {
 		content := strings.TrimSpace(match[1 : len(match)-1]) // Remove {}
-
-		// Special case for command_output
-		if content == "command_output" {
-			if output, ok := data["command_output"].(string); ok {
-				return output
-			}
-			return ""
-		}
-
-		// Special case for output
-		if content == "output" {
-			if output, ok := data["output"].(string); ok {
-				return output
-			}
-			return ""
-		}
 
 		// Process as JQ query
 		result, err := executeJQQuery(content, data)

@@ -9,7 +9,6 @@ type Config struct {
 // Action represents a single action in the configuration
 type Action struct {
 	Name    string `yaml:"name"`    // Optional name for debugging
-	Command string `yaml:"command"` // Shell command to execute
-	Text    string `yaml:"text"`    // Template text (uses command output if command is set)
+	Command string `yaml:"command"` // Shell command to execute or template text
 	Color   string `yaml:"color"`   // Optional color
 }
