@@ -117,8 +117,13 @@ separator: string      # Separator between segments (default: " | ")
 
 ### Available Colors
 
+**Foreground Colors:**
 - Basic: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`
 - Bright: `gray`, `bright_red`, `bright_green`, `bright_yellow`, `bright_blue`, `bright_magenta`, `bright_cyan`, `bright_white`
+
+**Background Colors:**
+- Basic: `bg_black`, `bg_red`, `bg_green`, `bg_yellow`, `bg_blue`, `bg_magenta`, `bg_cyan`, `bg_white`
+- Bright: `bg_gray`, `bg_bright_red`, `bg_bright_green`, `bg_bright_yellow`, `bg_bright_blue`, `bg_bright_magenta`, `bg_bright_cyan`, `bg_bright_white`
 
 ## Configuration Examples
 
@@ -194,6 +199,26 @@ actions:
 Output: `Model: Claude 3.5 Sonnet | ID: abc12345`
 
 **Note**: If a command fails or returns empty output, the prefix is not displayed.
+
+### With Background Colors
+
+```yaml
+actions:
+  # Important status with background
+  - name: environment
+    command: "echo 'PRODUCTION'"
+    color: bg_red
+
+  # Warning with background
+  - name: branch
+    command: "git branch --show-current"
+    color: bg_yellow
+
+  # Info with bright background
+  - name: model
+    command: "echo '{.model.display_name}'"
+    color: bg_bright_blue
+```
 
 ### With Caching (for expensive operations)
 
