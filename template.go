@@ -136,3 +136,19 @@ func processTemplate(template string, data map[string]interface{}) string {
 		return result
 	})
 }
+
+// expandTemplates only expands {.field} templates, not shell commands
+func expandTemplates(template string, data map[string]interface{}) string {
+	// Process template placeholders {.field}
+	pattern := regexp.MustCompile(`\{([^}]+)\}`)
+	return pattern.ReplaceAllStringFunc(template, func(match string) string {
+		content := strings.TrimSpace(match[1 : len(match)-1]) // Remove {}
+
+		// Process as JQ query
+		result, err := executeJQQuery(content, data)
+		if err != nil {
+			return fmt.Sprintf("[ERROR: %s]", err.Error())
+		}
+		return result
+	})
+}
