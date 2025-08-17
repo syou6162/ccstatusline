@@ -27,6 +27,11 @@ func LoadConfig(configPath string) (*Config, error) {
 		config.Separator = " | "
 	}
 
+	// Validate actions
+	if err := validateActions(config.Actions); err != nil {
+		return nil, err
+	}
+
 	return &config, nil
 }
 
@@ -52,4 +57,29 @@ func resolveConfigPath(configPath string) string {
 	}
 
 	return "config.yaml"
+}
+
+// validateActions validates the action configuration
+func validateActions(actions []Action) error {
+	names := make(map[string]bool)
+
+	for i, action := range actions {
+		// Check name is required
+		if action.Name == "" {
+			return fmt.Errorf("action at index %d: name is required", i)
+		}
+
+		// Check for duplicate names
+		if names[action.Name] {
+			return fmt.Errorf("duplicate action name: %s", action.Name)
+		}
+		names[action.Name] = true
+
+		// Check command is required
+		if action.Command == "" {
+			return fmt.Errorf("action %s: command is required", action.Name)
+		}
+	}
+
+	return nil
 }
