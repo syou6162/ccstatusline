@@ -142,6 +142,19 @@ actions:
     color: cyan
 ```
 
+### Complex Command Pipeline
+
+```yaml
+actions:
+  # Extract session ID from transcript file
+  - command: "$(cat | jq -r '.transcript_path' | xargs -I% cat % | jq -r '.sessionId' | tail -n 1)"
+    color: yellow
+
+  # Process multiple fields with jq
+  - command: "$(cat | jq -r '[.model.display_name, .cwd] | join(\" in \")')"
+    color: cyan
+```
+
 ## Configuration File Location
 
 The configuration file is searched in the following order:
