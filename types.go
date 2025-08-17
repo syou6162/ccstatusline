@@ -11,6 +11,6 @@ type Action struct {
 	Name     string `yaml:"name"`      // Required: unique identifier for action
 	Command  string `yaml:"command"`   // Shell command to execute or template text
 	Prefix   string `yaml:"prefix"`    // Optional prefix to prepend to command output
-	Color    string `yaml:"color"`     // Optional color
+	Color    string `yaml:"color"`     // Optional color (foreground or background with bg_ prefix)
 	CacheTTL int    `yaml:"cache_ttl"` // Cache TTL in seconds (0 or unset = no cache)
 }
