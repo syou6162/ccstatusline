@@ -1,0 +1,32 @@
+# Example configuration for ccstatusline
+# Place this at ~/.config/ccstatusline/config.yaml
+
+actions:
+  # Model display name
+  - text: "🤖 {.model.display_name}"
+    color: cyan
+
+  # Git branch
+  - command: "git branch --show-current 2>/dev/null || echo 'no-git'"
+    text: "({output})"
+    color: green
+
+  # Current directory from cwd field
+  - text: "📁 {.cwd | split(\"/\") | .[-1]}"
+    color: blue
+
+  # Session ID (first 8 chars)
+  - text: "[{.session_id | .[0:8]}]"
+    color: gray
+
+separator: " | "
+
+# Alternative minimal config:
+# actions:
+#   - command: "whoami"
+#     color: cyan
+#   - command: "git branch --show-current"
+#     color: green
+#   - command: "basename \"$(pwd)\""
+#     color: blue
+# separator: " | "
