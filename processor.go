@@ -56,6 +56,10 @@ func (p *Processor) processAction(action Action) (string, error) {
 	// Check cache if TTL is set
 	if action.CacheTTL > 0 {
 		if cachedOutput, ok := p.cache.Get(action.Name); ok {
+			// Apply prefix if specified and output is not empty
+			if action.Prefix != "" && cachedOutput != "" {
+				cachedOutput = action.Prefix + cachedOutput
+			}
 			// Apply color to cached output if specified
 			if action.Color != "" {
 				cachedOutput = applyColor(cachedOutput, action.Color)
@@ -79,10 +83,15 @@ func (p *Processor) processAction(action Action) (string, error) {
 		cmd.Stdout = &out
 
 		if err := cmd.Run(); err != nil {
-			// Command failed, use empty output
-			output = ""
-		} else {
-			output = strings.TrimSpace(out.String())
+			// Command failed, return empty string (no prefix shown)
+			return "", nil
+		}
+
+		output = strings.TrimSpace(out.String())
+
+		// If output is empty, don't show prefix
+		if output == "" {
+			return "", nil
 		}
 
 		// Store in cache if TTL is set and output is not empty
@@ -94,8 +103,13 @@ func (p *Processor) processAction(action Action) (string, error) {
 		}
 	}
 
-	// Apply color if specified
-	if action.Color != "" {
+	// Apply prefix if specified and output is not empty
+	if action.Prefix != "" && output != "" {
+		output = action.Prefix + output
+	}
+
+	// Apply color if specified and output is not empty
+	if action.Color != "" && output != "" {
 		output = applyColor(output, action.Color)
 	}
 
