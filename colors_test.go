@@ -11,6 +11,7 @@ func TestApplyColor(t *testing.T) {
 		color    string
 		expected string
 	}{
+		// Foreground colors
 		{
 			name:     "cyan color",
 			text:     "Hello",
@@ -41,6 +42,33 @@ func TestApplyColor(t *testing.T) {
 			color:    "bright_blue",
 			expected: "\033[94mInfo\033[0m",
 		},
+		// Background colors
+		{
+			name:     "bg_blue color",
+			text:     "Background",
+			color:    "bg_blue",
+			expected: "\033[44mBackground\033[0m",
+		},
+		{
+			name:     "bg_bright_yellow color",
+			text:     "Warning",
+			color:    "bg_bright_yellow",
+			expected: "\033[103mWarning\033[0m",
+		},
+		// Style modifiers
+		{
+			name:     "bold style",
+			text:     "Bold",
+			color:    "bold",
+			expected: "\033[1mBold\033[0m",
+		},
+		{
+			name:     "underline style",
+			text:     "Underlined",
+			color:    "underline",
+			expected: "\033[4mUnderlined\033[0m",
+		},
+		// Edge cases
 		{
 			name:     "empty color",
 			text:     "No color",
@@ -52,6 +80,19 @@ func TestApplyColor(t *testing.T) {
 			text:     "Unknown",
 			color:    "invalid",
 			expected: "Unknown",
+		},
+		// Aliases
+		{
+			name:     "grey alias",
+			text:     "Grey",
+			color:    "grey",
+			expected: "\033[90mGrey\033[0m",
+		},
+		{
+			name:     "bg_grey alias",
+			text:     "BG Grey",
+			color:    "bg_grey",
+			expected: "\033[100mBG Grey\033[0m",
 		},
 	}
 
