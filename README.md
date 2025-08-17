@@ -8,10 +8,11 @@ ccstatusline makes it easy to customize Claude Code's statusline using YAML conf
 
 ## Features
 
-- 🎨 **YAML Configuration**: Clean, readable multi-line configuration
-- 📝 **Template Syntax**: `{.field}` for JSON data access and `$(command)` for shell commands
-- 🌈 **Color Support**: ANSI color codes for enhanced readability
-- 📂 **XDG Compliant**: Follows XDG Base Directory specification
+- **YAML Configuration**: Clean, readable multi-line configuration
+- **Template Syntax**: `{.field}` for JSON data access using JQ queries
+- **Shell Commands**: Execute any shell command with JSON data available via stdin
+- **Color Support**: ANSI color codes for enhanced readability
+- **XDG Compliant**: Follows XDG Base Directory specification
 
 ## Installation
 
@@ -73,7 +74,7 @@ separator: " | "
 Your statusline will display:
 
 ```
-🤖 Claude 3.5 Sonnet | (main) | 📁 myproject | [abc12345]
+Claude 3.5 Sonnet | main | myproject | abc12345
 ```
 
 ## Configuration
@@ -118,10 +119,10 @@ separator: string      # Separator between segments (default: " | ")
 
 ```yaml
 actions:
-  - command: "💻 $(hostname -s)"
+  - command: "hostname -s"
     color: magenta
 
-  - command: "🕐 $(date +%H:%M)"
+  - command: "date +%H:%M"
     color: yellow
 
 separator: " | "
