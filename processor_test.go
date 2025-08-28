@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -421,7 +422,7 @@ func TestProcessorWithCacheSeparationByDirectory(t *testing.T) {
 			"display_name": "Claude 3.5",
 		},
 	}
-	
+
 	inputData2 := map[string]interface{}{
 		"session_id": "test456",
 		"cwd":        "/Users/user/work/project2",
@@ -429,7 +430,7 @@ func TestProcessorWithCacheSeparationByDirectory(t *testing.T) {
 			"display_name": "Claude 3.5",
 		},
 	}
-	
+
 	config := &Config{
 		Actions: []Action{
 			{
@@ -440,11 +441,11 @@ func TestProcessorWithCacheSeparationByDirectory(t *testing.T) {
 		},
 		Separator: " | ",
 	}
-	
+
 	// processor1 でキャッシュを設定
 	processor1 := NewProcessor(inputData1)
 	processor1.cache = NewCache(t.TempDir())
-	
+
 	output1, err := processor1.Process(config)
 	if err != nil {
 		t.Fatalf("Process() error = %v", err)
@@ -452,11 +453,11 @@ func TestProcessorWithCacheSeparationByDirectory(t *testing.T) {
 	if output1 != "project1_data" {
 		t.Errorf("First execution output = %v, want project1_data", output1)
 	}
-	
+
 	// processor2 は同じキャッシュディレクトリを使うが、異なるcwdなので異なるキャッシュキーになる
 	processor2 := NewProcessor(inputData2)
 	processor2.cache = processor1.cache // 同じキャッシュインスタンスを共有
-	
+
 	// processor2 のコマンドを異なる出力に変更（キャッシュが分離されていることを確認）
 	config2 := &Config{
 		Actions: []Action{
@@ -468,7 +469,7 @@ func TestProcessorWithCacheSeparationByDirectory(t *testing.T) {
 		},
 		Separator: " | ",
 	}
-	
+
 	output2, err := processor2.Process(config2)
 	if err != nil {
 		t.Fatalf("Process() error = %v", err)
@@ -476,7 +477,7 @@ func TestProcessorWithCacheSeparationByDirectory(t *testing.T) {
 	if output2 != "project2_data" {
 		t.Errorf("Second execution output = %v, want project2_data", output2)
 	}
-	
+
 	// processor1 のキャッシュがまだ有効であることを確認
 	// コマンドを変更してもキャッシュから読まれるはず
 	config3 := &Config{
@@ -489,7 +490,7 @@ func TestProcessorWithCacheSeparationByDirectory(t *testing.T) {
 		},
 		Separator: " | ",
 	}
-	
+
 	output3, err := processor1.Process(config3)
 	if err != nil {
 		t.Fatalf("Process() error = %v", err)
@@ -497,4 +498,89 @@ func TestProcessorWithCacheSeparationByDirectory(t *testing.T) {
 	if output3 != "project1_data" {
 		t.Errorf("Cached output for project1 = %v, want project1_data", output3)
 	}
+}
+
+func TestProcessorBuiltin(t *testing.T) {
+	t.Run("process builtin type action", func(t *testing.T) {
+		// テスト用のトランスクリプトファイルを作成（JSONL形式）
+		transcriptContent := `{"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": "Hello"}]}}
+{"type": "assistant", "message": {"role": "assistant", "usage": {"input_tokens": 10000, "cache_creation_input_tokens": 15000, "cache_read_input_tokens": 5000, "output_tokens": 2000}}}
+`
+
+		tmpFile := t.TempDir() + "/transcript.jsonl"
+		if err := os.WriteFile(tmpFile, []byte(transcriptContent), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		inputData := map[string]interface{}{
+			"transcript_path": tmpFile,
+			"model": map[string]interface{}{
+				"display_name": "Claude 3.5 Sonnet",
+			},
+		}
+
+		cache := NewCache(t.TempDir())
+		processor := NewProcessor(inputData)
+		processor.cache = cache
+
+		action := Action{
+			Name:     "context_percent",
+			Type:     "builtin",
+			Function: "context_percent",
+		}
+
+		// processActionメソッドを呼び出す
+		result, err := processor.processAction(action)
+		if err != nil {
+			t.Fatalf("processAction() error = %v", err)
+		}
+
+		// (10000 + 15000 + 5000) / 200000 * 100 = 15%
+		if result != "15%" {
+			t.Errorf("expected '15%%', got '%s'", result)
+		}
+	})
+
+	t.Run("process builtin with prefix and color", func(t *testing.T) {
+		transcriptContent := `{"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": "Hello"}]}}
+{"type": "assistant", "message": {"role": "assistant", "usage": {"input_tokens": 30000, "cache_creation_input_tokens": 20000, "cache_read_input_tokens": 12000, "output_tokens": 5000}}}
+`
+
+		tmpFile := t.TempDir() + "/transcript.jsonl"
+		if err := os.WriteFile(tmpFile, []byte(transcriptContent), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		inputData := map[string]interface{}{
+			"transcript_path": tmpFile,
+		}
+
+		cache := NewCache(t.TempDir())
+		processor := NewProcessor(inputData)
+		processor.cache = cache
+
+		action := Action{
+			Name:     "context_used",
+			Type:     "builtin",
+			Function: "context_used",
+			Prefix:   "Used: ",
+			Color:    "cyan",
+		}
+
+		result, err := processor.processAction(action)
+		if err != nil {
+			t.Fatalf("processAction() error = %v", err)
+		}
+
+		// プレフィックスとカラーコードが適用されているか確認
+		if !strings.Contains(result, "Used: ") {
+			t.Errorf("expected prefix 'Used: ', result: %s", result)
+		}
+		if !strings.Contains(result, "62k") {
+			t.Errorf("expected '62k' in result, got: %s", result)
+		}
+		if !strings.Contains(result, "\033[36m") { // cyan color code
+			t.Errorf("expected cyan color code, result: %s", result)
+		}
+	})
 }
