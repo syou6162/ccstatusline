@@ -122,6 +122,29 @@ Common fields available for templates:
 - Tests use table-driven patterns for comprehensive coverage
 - Mock commands (e.g., `echo`) used to avoid external dependencies
 
+## Builtin Functions
+
+### context_percent and context_used
+These builtin functions calculate context usage from Claude Code's JSONL transcript files.
+
+**Important Limitations**:
+- **Not real-time**: JSONL files are updated with a delay during active sessions
+  - Updates happen every 2-5 minutes or when tab goes idle
+  - Full flush only occurs at session end
+- **Active sessions show stale data**: During an active session, the values may be hours old
+- **Accurate for completed sessions**: Once a session ends, the JSONL contains accurate final values
+
+**Token Calculation**:
+- Uses the latest assistant message's cumulative token count
+- Formula: `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`
+- The `input_tokens` field in assistant messages is cumulative (total context used up to that point)
+
+**Future Improvements**:
+For real-time token tracking, consider:
+1. Using OpenTelemetry export with `OTEL_EXPORTER_OTLP_ENDPOINT`
+2. Monitoring the Redux store in Electron process
+3. Using external tools like `claude-monitor` or `ccusage`
+
 ## Common Tasks
 
 ### Adding a New Color

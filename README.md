@@ -89,8 +89,10 @@ Claude 3.5 Sonnet | main | myproject | abc12345
 ```yaml
 actions:
   - name: string        # Required: unique identifier for action
-    command: string     # Shell command (templates expanded before execution)
-    prefix: string      # Optional prefix to prepend to command output
+    type: string        # Type: "command" (default) or "builtin"
+    command: string     # Shell command (for type: command)
+    function: string    # Function name (for type: builtin)
+    prefix: string      # Optional prefix to prepend to output
     color: string       # Color name (optional)
     cache_ttl: integer  # Cache TTL in seconds (optional, 0 or unset = no cache)
 
@@ -242,6 +244,41 @@ actions:
     color: yellow
 ```
 
+### Builtin Functions
+
+ccstatusline provides builtin functions for common tasks:
+
+```yaml
+actions:
+  # Show context usage percentage
+  - name: context_percent
+    type: builtin
+    function: context_percent
+    cache_ttl: 3
+    color: yellow
+
+  # Show context usage in tokens (e.g., "67k")
+  - name: context_used
+    type: builtin
+    function: context_used
+    cache_ttl: 3
+    prefix: "CTX:"
+    color: cyan
+```
+
+#### Available Builtin Functions
+
+- `context_percent`: Shows percentage of context window used (e.g., "40%")
+- `context_used`: Shows tokens used in human-readable format (e.g., "67k")
+
+**Important Limitations for Context Functions:**
+
+- **Not real-time**: During active sessions, values may be delayed by 2-5 minutes or more
+- **Accurate for completed sessions**: Once a session ends, the values are accurate
+- **Requires transcript_path**: Claude Code must provide the transcript file path
+
+The context functions read from Claude Code's JSONL transcript files which are updated periodically, not in real-time. For real-time token tracking, consider using external tools like `ccusage` or monitoring with OpenTelemetry.
+
 ## Configuration File Location
 
 The configuration file is searched in the following order:
@@ -340,6 +377,9 @@ ccstatusline/
 ├── processor.go     # Action processing with caching
 ├── colors.go        # ANSI color codes
 ├── cache.go         # Caching implementation
+├── builtin/         # Builtin functions
+│   ├── builtin.go   # Registry and interface
+│   └── context.go   # Context usage functions
 └── *_test.go        # Test files
 ```
 
