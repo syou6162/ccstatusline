@@ -139,3 +139,70 @@ func TestResolveConfigPath(t *testing.T) {
 		})
 	}
 }
+
+func TestActionTypeField(t *testing.T) {
+	t.Run("parse builtin type action", func(t *testing.T) {
+		yamlContent := []byte(`
+actions:
+  - name: context_percent
+    type: builtin
+    function: context_percent
+    cache_ttl: 3
+`)
+		config, err := parseConfig(yamlContent)
+		if err != nil {
+			t.Fatalf("failed to parse config: %v", err)
+		}
+
+		if len(config.Actions) != 1 {
+			t.Fatalf("expected 1 action, got %d", len(config.Actions))
+		}
+
+		action := config.Actions[0]
+		if action.Type != "builtin" {
+			t.Errorf("expected type 'builtin', got '%s'", action.Type)
+		}
+		if action.Function != "context_percent" {
+			t.Errorf("expected function 'context_percent', got '%s'", action.Function)
+		}
+	})
+
+	t.Run("parse command type action", func(t *testing.T) {
+		yamlContent := []byte(`
+actions:
+  - name: git_branch
+    type: command
+    command: git branch --show-current
+`)
+		config, err := parseConfig(yamlContent)
+		if err != nil {
+			t.Fatalf("failed to parse config: %v", err)
+		}
+
+		action := config.Actions[0]
+		if action.Type != "command" {
+			t.Errorf("expected type 'command', got '%s'", action.Type)
+		}
+		if action.Command != "git branch --show-current" {
+			t.Errorf("expected command 'git branch --show-current', got '%s'", action.Command)
+		}
+	})
+
+	t.Run("default type is command", func(t *testing.T) {
+		yamlContent := []byte(`
+actions:
+  - name: git_branch
+    command: git branch --show-current
+`)
+		config, err := parseConfig(yamlContent)
+		if err != nil {
+			t.Fatalf("failed to parse config: %v", err)
+		}
+
+		action := config.Actions[0]
+		// Type が指定されていない場合は空文字列になる
+		if action.Type != "" {
+			t.Errorf("expected type '', got '%s'", action.Type)
+		}
+	})
+}

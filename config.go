@@ -17,9 +17,14 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
+	return parseConfig(data)
+}
+
+// parseConfig parses config from yaml bytes
+func parseConfig(data []byte) (*Config, error) {
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
 	// Set default separator if not specified
@@ -75,9 +80,19 @@ func validateActions(actions []Action) error {
 		}
 		names[action.Name] = true
 
-		// Check command is required
-		if action.Command == "" {
-			return fmt.Errorf("action %s: command is required", action.Name)
+		// Check type-specific requirements
+		switch action.Type {
+		case "builtin":
+			if action.Function == "" {
+				return fmt.Errorf("action %s: function is required for builtin type", action.Name)
+			}
+		case "command", "":
+			// Default to command type
+			if action.Command == "" {
+				return fmt.Errorf("action %s: command is required", action.Name)
+			}
+		default:
+			return fmt.Errorf("action %s: unknown type '%s'", action.Name, action.Type)
 		}
 	}
 

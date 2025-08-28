@@ -7,19 +7,23 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/syou6162/ccstatusline/builtin"
 )
 
 // Processor handles the processing of actions
 type Processor struct {
-	inputData map[string]interface{}
-	cache     *Cache
+	inputData       map[string]interface{}
+	cache           *Cache
+	builtinRegistry *builtin.Registry
 }
 
 // NewProcessor creates a new processor
 func NewProcessor(inputData map[string]interface{}) *Processor {
 	return &Processor{
-		inputData: inputData,
-		cache:     NewDefaultCache(),
+		inputData:       inputData,
+		cache:           NewDefaultCache(),
+		builtinRegistry: builtin.NewRegistry(),
 	}
 }
 
@@ -52,6 +56,7 @@ func (p *Processor) Process(config *Config) (string, error) {
 // processAction processes a single action
 func (p *Processor) processAction(action Action) (string, error) {
 	var output string
+	var err error
 
 	// Get cwd from input data
 	cwd := ""
@@ -76,38 +81,60 @@ func (p *Processor) processAction(action Action) (string, error) {
 		}
 	}
 
-	if action.Command != "" {
-		// First, expand any templates in the command string
-		expandedCommand := expandTemplates(action.Command, p.inputData)
-
-		// Then execute as shell command
-		cmd := exec.Command("sh", "-c", expandedCommand)
-
-		// Provide JSON input via stdin
-		inputJSON, _ := json.Marshal(p.inputData)
-		cmd.Stdin = bytes.NewReader(inputJSON)
-
-		var out bytes.Buffer
-		cmd.Stdout = &out
-
-		if err := cmd.Run(); err != nil {
-			// Command failed, return empty string (no prefix shown)
-			return "", nil
+	// Process based on action type
+	switch action.Type {
+	case "builtin":
+		// Execute builtin function
+		if action.Function == "" {
+			return "", fmt.Errorf("function is required for builtin type")
+		}
+		fn := p.builtinRegistry.Get(action.Function)
+		if fn == nil {
+			return "", fmt.Errorf("unknown builtin function: %s", action.Function)
+		}
+		output, err = fn.Execute(p.inputData)
+		if err != nil {
+			return "", nil // Return empty string on error
 		}
 
-		output = strings.TrimSpace(out.String())
+	case "command", "":
+		// Execute shell command (default behavior)
+		if action.Command != "" {
+			// First, expand any templates in the command string
+			expandedCommand := expandTemplates(action.Command, p.inputData)
 
-		// If output is empty, don't show prefix
-		if output == "" {
-			return "", nil
-		}
+			// Then execute as shell command
+			cmd := exec.Command("sh", "-c", expandedCommand)
 
-		// Store in cache if TTL is set and output is not empty
-		if action.CacheTTL > 0 && output != "" {
-			if err := p.cache.SetWithCwd(cwd, action.Name, output, action.CacheTTL); err != nil {
-				// Log but don't fail
-				fmt.Fprintf(os.Stderr, "Warning: failed to cache result for %s: %v\n", action.Name, err)
+			// Provide JSON input via stdin
+			inputJSON, _ := json.Marshal(p.inputData)
+			cmd.Stdin = bytes.NewReader(inputJSON)
+
+			var out bytes.Buffer
+			cmd.Stdout = &out
+
+			if err := cmd.Run(); err != nil {
+				// Command failed, return empty string (no prefix shown)
+				return "", nil
 			}
+
+			output = strings.TrimSpace(out.String())
+
+			// If output is empty, don't show prefix
+			if output == "" {
+				return "", nil
+			}
+		}
+
+	default:
+		return "", fmt.Errorf("unknown action type: %s", action.Type)
+	}
+
+	// Store in cache if TTL is set and output is not empty
+	if action.CacheTTL > 0 && output != "" {
+		if err := p.cache.SetWithCwd(cwd, action.Name, output, action.CacheTTL); err != nil {
+			// Log but don't fail
+			fmt.Fprintf(os.Stderr, "Warning: failed to cache result for %s: %v\n", action.Name, err)
 		}
 	}
 
